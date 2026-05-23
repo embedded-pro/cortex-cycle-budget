@@ -1,10 +1,5 @@
 name: 'Cortex Cycle Budget'
-description: >-
-  Static ARM Cortex-M (M0/M4/M7/M33) cycle-count estimation for a critical path
-  through an ELF binary. Supports single-mode (one ELF / one config) and
-  multi-mode (multiple critical paths via an `analyses-json` array). Produces
-  a PR comment, GitHub Actions step summary, CPU budget table, annotated
-  disassembly, and JSON metrics.
+description: 'Static ARM Cortex-M (M0/M4/M7/M33) cycle-count estimation for ELF binaries.'
 author: 'cortex-cycle-budget contributors'
 
 branding:
