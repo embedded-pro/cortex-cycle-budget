@@ -1,0 +1,119 @@
+{
+  "modes": [
+    {
+      "target": "demo-m4",
+      "build_config": "Release",
+      "clock_mhz": 100,
+      "cortex": "m4",
+      "path": "Mode A \u2014 Sensored",
+      "summary": {
+        "estimated_min_cycles": 23,
+        "estimated_max_cycles": 37,
+        "total_instructions": 20,
+        "total_code_size_bytes": 52,
+        "path_stages": 3
+      },
+      "utilization": {
+        "20khz_min_pct": 0.46,
+        "20khz_max_pct": 0.74
+      },
+      "stages": [
+        {
+          "label": "Sensor Filter",
+          "min_cycles": 3,
+          "max_cycles": 6,
+          "instructions": 3,
+          "code_size_bytes": 8,
+          "fpu_ops": 0,
+          "is_overhead": false,
+          "functions": [
+            "sensor_filter"
+          ]
+        },
+        {
+          "label": "PID Loop",
+          "min_cycles": 15,
+          "max_cycles": 18,
+          "instructions": 12,
+          "code_size_bytes": 28,
+          "fpu_ops": 0,
+          "is_overhead": false,
+          "functions": [
+            "pid_loop"
+          ]
+        },
+        {
+          "label": "Mode A Wrap",
+          "min_cycles": 5,
+          "max_cycles": 13,
+          "instructions": 5,
+          "code_size_bytes": 16,
+          "fpu_ops": 0,
+          "is_overhead": false,
+          "functions": [
+            "mode_a_step"
+          ]
+        }
+      ],
+      "mode_label": "Mode A (Sensored)"
+    },
+    {
+      "target": "demo-m4",
+      "build_config": "Release",
+      "clock_mhz": 100,
+      "cortex": "m4",
+      "path": "Mode B \u2014 Sensorless",
+      "summary": {
+        "estimated_min_cycles": 23,
+        "estimated_max_cycles": 37,
+        "total_instructions": 20,
+        "total_code_size_bytes": 54,
+        "path_stages": 3
+      },
+      "utilization": {
+        "20khz_min_pct": 0.46,
+        "20khz_max_pct": 0.74
+      },
+      "stages": [
+        {
+          "label": "Observer",
+          "min_cycles": 3,
+          "max_cycles": 6,
+          "instructions": 3,
+          "code_size_bytes": 10,
+          "fpu_ops": 0,
+          "is_overhead": false,
+          "functions": [
+            "observer"
+          ]
+        },
+        {
+          "label": "PID Loop",
+          "min_cycles": 15,
+          "max_cycles": 18,
+          "instructions": 12,
+          "code_size_bytes": 28,
+          "fpu_ops": 0,
+          "is_overhead": false,
+          "functions": [
+            "pid_loop"
+          ]
+        },
+        {
+          "label": "Mode B Wrap",
+          "min_cycles": 5,
+          "max_cycles": 13,
+          "instructions": 5,
+          "code_size_bytes": 16,
+          "fpu_ops": 0,
+          "is_overhead": false,
+          "functions": [
+            "mode_b_step"
+          ]
+        }
+      ],
+      "mode_label": "Mode B (Sensorless)"
+    }
+  ],
+  "overall_max_cycles": 37
+}

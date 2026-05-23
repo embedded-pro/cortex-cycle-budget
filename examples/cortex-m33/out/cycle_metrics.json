@@ -1,0 +1,54 @@
+{
+  "target": "demo-m33",
+  "build_config": "Release",
+  "clock_mhz": 110,
+  "cortex": "m33",
+  "path": "ISR CRC32",
+  "summary": {
+    "estimated_min_cycles": 25,
+    "estimated_max_cycles": 62,
+    "total_instructions": 1,
+    "total_code_size_bytes": 4,
+    "path_stages": 3
+  },
+  "utilization": {
+    "1khz_min_pct": 0.02,
+    "1khz_max_pct": 0.06,
+    "10khz_min_pct": 0.23,
+    "10khz_max_pct": 0.56
+  },
+  "stages": [
+    {
+      "label": "ISR Entry",
+      "min_cycles": 12,
+      "max_cycles": 29,
+      "instructions": 0,
+      "code_size_bytes": 0,
+      "fpu_ops": 0,
+      "is_overhead": true,
+      "functions": []
+    },
+    {
+      "label": "ISR Body",
+      "min_cycles": 1,
+      "max_cycles": 4,
+      "instructions": 1,
+      "code_size_bytes": 4,
+      "fpu_ops": 0,
+      "is_overhead": false,
+      "functions": [
+        "isr_handler"
+      ]
+    },
+    {
+      "label": "ISR Exit",
+      "min_cycles": 12,
+      "max_cycles": 29,
+      "instructions": 0,
+      "code_size_bytes": 0,
+      "fpu_ops": 0,
+      "is_overhead": true,
+      "functions": []
+    }
+  ]
+}

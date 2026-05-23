@@ -1,0 +1,22 @@
+{
+  "path_name": "FOC Kernel (FPU-heavy)",
+  "loop_rates_khz": [20, 40, 100],
+  "path_stages": [
+    {
+      "label": "Park / Clarke",
+      "patterns": ["^park_transform$"]
+    },
+    {
+      "label": "Magnitude (vsqrt.f32)",
+      "patterns": ["^compute_magnitude$"]
+    },
+    {
+      "label": "Normalize (vdiv.f32)",
+      "patterns": ["^normalize$"]
+    },
+    {
+      "label": "FOC Kernel Wrapper",
+      "patterns": ["^foc_kernel$"]
+    }
+  ]
+}

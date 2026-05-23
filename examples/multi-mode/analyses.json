@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Mode A (Sensored)",
+    "elf_path": "motor_modes.elf",
+    "config_path": "cycle-analysis-a.json",
+    "output_dir": "out/mode_a"
+  },
+  {
+    "label": "Mode B (Sensorless)",
+    "elf_path": "motor_modes.elf",
+    "config_path": "cycle-analysis-b.json",
+    "output_dir": "out/mode_b"
+  }
+]

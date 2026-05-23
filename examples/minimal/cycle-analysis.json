@@ -1,0 +1,19 @@
+{
+  "path_name": "Control Loop",
+  "loop_rates_khz": [10, 20, 50],
+  "path_stages": [
+    {
+      "label": "Sensor Read",
+      "patterns": ["^sensor_read$"]
+    },
+    {
+      "label": "Control Computation",
+      "entry": "^control_loop$",
+      "patterns": ["^control_loop$"]
+    },
+    {
+      "label": "Actuator Output",
+      "patterns": ["^actuator_output$"]
+    }
+  ]
+}

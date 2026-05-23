@@ -1,0 +1,11 @@
+motor_modes.elf  :
+section           size   addr
+.text              100      0
+.persistent          0   4196
+.bss                 4   4196
+.noinit              0   4200
+.comment            69      0
+.ARM.attributes     46      0
+Total              219
+
+

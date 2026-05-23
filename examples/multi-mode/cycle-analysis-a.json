@@ -1,0 +1,9 @@
+{
+  "path_name": "Mode A — Sensored",
+  "loop_rates_khz": [20],
+  "path_stages": [
+    {"label": "Sensor Filter", "patterns": ["^sensor_filter$"]},
+    {"label": "PID Loop",      "patterns": ["^pid_loop$"]},
+    {"label": "Mode A Wrap",   "patterns": ["^mode_a_step$"]}
+  ]
+}

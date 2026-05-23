@@ -1,0 +1,10 @@
+foc_kernel.elf  :
+section           size   addr
+.text              136      0
+.persistent          0   4232
+.noinit              0   4232
+.comment            69      0
+.ARM.attributes     52      0
+Total              257
+
+

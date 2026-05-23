@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Testing / coverage
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+cover/
+htmlcov/
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / fixture artifacts
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+!examples/**/*.elf
+
+# Generated outputs
+cycle-analysis-output/
+cycle-analysis-combined/
+*.disasm

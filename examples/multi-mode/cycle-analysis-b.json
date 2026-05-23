@@ -1,0 +1,9 @@
+{
+  "path_name": "Mode B — Sensorless",
+  "loop_rates_khz": [20],
+  "path_stages": [
+    {"label": "Observer",      "patterns": ["^observer$"]},
+    {"label": "PID Loop",      "patterns": ["^pid_loop$"]},
+    {"label": "Mode B Wrap",   "patterns": ["^mode_b_step$"]}
+  ]
+}

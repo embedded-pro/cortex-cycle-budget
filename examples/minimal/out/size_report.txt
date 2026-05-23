@@ -1,0 +1,10 @@
+control_loop.elf  :
+section           size   addr
+.text               42      0
+.persistent          0   4140
+.noinit              0   4140
+.comment            69      0
+.ARM.attributes     46      0
+Total              157
+
+

@@ -1,0 +1,83 @@
+name: Cycle Analysis (reusable)
+
+# Reusable workflow that wraps the composite ./action so consumers can call it
+# with `uses: your-org/cortex-cycle-budget/.github/workflows/cycle-analysis.yml@<ref>`.
+#
+# Build the ELF in a job that uploads it as an artifact named `elf-artifact`
+# (configurable), then call this workflow.
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: 'Path to the cycle-analysis JSON config file (in the consumer repo).'
+        required: true
+        type: string
+      elf-artifact-name:
+        description: 'Artifact name containing the ELF.'
+        required: true
+        type: string
+      elf-path:
+        description: 'Path to the ELF inside the downloaded artifact.'
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      build-config:
+        required: true
+        type: string
+      clock-mhz:
+        required: true
+        type: number
+      cortex:
+        required: false
+        type: string
+        default: 'm4'
+      fail-over-max-cycles:
+        required: false
+        type: number
+        default: 0
+      python-version:
+        required: false
+        type: string
+        default: '3.11'
+      package-version:
+        required: false
+        type: string
+        default: ''
+      runs-on:
+        required: false
+        type: string
+        default: 'ubuntu-latest'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  cycle-analysis:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Checkout consumer repo
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
+
+      - name: Download ELF artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: ${{ inputs.elf-artifact-name }}
+          path: elf
+
+      - name: Run cycle analysis
+        uses: cortex-cycle-budget/cortex-cycle-budget@v0  # pinned tag; or use a SHA
+        with:
+          config-path: ${{ inputs.config-path }}
+          elf-path: elf/${{ inputs.elf-path }}
+          target: ${{ inputs.target }}
+          build-config: ${{ inputs.build-config }}
+          clock-mhz: ${{ inputs.clock-mhz }}
+          cortex: ${{ inputs.cortex }}
+          fail-over-max-cycles: ${{ inputs.fail-over-max-cycles == 0 && '' || inputs.fail-over-max-cycles }}
+          python-version: ${{ inputs.python-version }}
+          package-version: ${{ inputs.package-version }}

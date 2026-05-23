@@ -1,0 +1,72 @@
+{
+  "target": "demo-h7",
+  "build_config": "Release",
+  "clock_mhz": 480,
+  "cortex": "m7",
+  "path": "FOC Kernel (FPU-heavy)",
+  "summary": {
+    "estimated_min_cycles": 38,
+    "estimated_max_cycles": 58,
+    "total_instructions": 25,
+    "total_code_size_bytes": 90,
+    "path_stages": 4
+  },
+  "utilization": {
+    "20khz_min_pct": 0.16,
+    "20khz_max_pct": 0.24,
+    "40khz_min_pct": 0.32,
+    "40khz_max_pct": 0.48,
+    "100khz_min_pct": 0.79,
+    "100khz_max_pct": 1.21
+  },
+  "stages": [
+    {
+      "label": "Park / Clarke",
+      "min_cycles": 10,
+      "max_cycles": 13,
+      "instructions": 9,
+      "code_size_bytes": 32,
+      "fpu_ops": 5,
+      "is_overhead": false,
+      "functions": [
+        "park_transform"
+      ]
+    },
+    {
+      "label": "Magnitude (vsqrt.f32)",
+      "min_cycles": 10,
+      "max_cycles": 13,
+      "instructions": 4,
+      "code_size_bytes": 14,
+      "fpu_ops": 3,
+      "is_overhead": false,
+      "functions": [
+        "compute_magnitude"
+      ]
+    },
+    {
+      "label": "Normalize (vdiv.f32)",
+      "min_cycles": 8,
+      "max_cycles": 11,
+      "instructions": 2,
+      "code_size_bytes": 6,
+      "fpu_ops": 1,
+      "is_overhead": false,
+      "functions": [
+        "normalize"
+      ]
+    },
+    {
+      "label": "FOC Kernel Wrapper",
+      "min_cycles": 10,
+      "max_cycles": 21,
+      "instructions": 10,
+      "code_size_bytes": 38,
+      "fpu_ops": 5,
+      "is_overhead": false,
+      "functions": [
+        "foc_kernel"
+      ]
+    }
+  ]
+}
