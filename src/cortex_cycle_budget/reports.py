@@ -54,8 +54,7 @@ def generate_report(
     lines: list[str] = [
         "# Cycle Estimation Report",
         "",
-        f"**Target**: `{target}` | **Build**: `{build_config}` | "
-        f"**Clock**: {clock} MHz | **Cortex**: `{config.get('cortex', 'm4')}`",
+        f"**Target**: `{target}` | **Build**: `{build_config}` | **Clock**: {clock} MHz",
         f"**Path**: {path_name}",
         "",
         "## Executive Summary",
@@ -237,8 +236,7 @@ def generate_pr_comment(config: dict[str, Any], stages: list[PathStage]) -> str:
     lines: list[str] = [
         "## 🏎️ Cycle Estimation",
         "",
-        f"**Target**: `{target}` | **Build**: `{build_config}` | "
-        f"**Clock**: {clock} MHz | **Cortex**: `{config.get('cortex', 'm4')}`",
+        f"**Target**: `{target}` | **Build**: `{build_config}` | **Clock**: {clock} MHz",
         f"**Path**: {path_name}",
         "",
         "### Executive Summary",
@@ -347,6 +345,10 @@ def generate_json_metrics(
         if avail <= 0:
             continue
         utilization[f"{rate}khz_min_pct"] = round(total_min / avail * 100, 2)
+    for rate in loop_rates:
+        avail = clock * 1_000_000 // (rate * 1_000)
+        if avail <= 0:
+            continue
         utilization[f"{rate}khz_max_pct"] = round(total_max / avail * 100, 2)
 
     return {
