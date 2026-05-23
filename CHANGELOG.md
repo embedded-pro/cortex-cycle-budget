@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0](https://github.com/embedded-pro/cortex-cycle-budget/compare/v0.1.0...v0.2.0) (2026-05-23)
+
+
+### Features
+
+* initial cortex-cycle-budget v0.1.0 ([6cf43b0](https://github.com/embedded-pro/cortex-cycle-budget/commit/6cf43b0ad236d76b5f0f3afd65b5205a8d53b53b))
+
 ## [Unreleased]
 
 ## [0.1.0] — Initial release
