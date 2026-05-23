@@ -248,11 +248,22 @@ runs:
     - name: Post PR comment
       if: ${{ inputs.post-comment == 'true' && github.event_name == 'pull_request' }}
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3  # v9.0.0
+      env:
+        COMMENT_PATH: ${{ steps.run.outputs.comment-path }}
+        COMMENT_MARKER: ${{ inputs.comment-marker }}
       with:
         script: |
           const fs = require('fs');
           const commentPath = process.env.COMMENT_PATH;
           const marker = process.env.COMMENT_MARKER;
+          if (!commentPath) {
+            core.setFailed("COMMENT_PATH env var is empty; the 'Run cycle analysis' step did not produce a comment-path output.");
+            return;
+          }
+          if (!marker) {
+            core.setFailed("COMMENT_MARKER env var is empty; provide a non-empty 'comment-marker' input.");
+            return;
+          }
           if (!fs.existsSync(commentPath)) {
             core.warning(`PR comment file not found: ${commentPath}`);
             return;
