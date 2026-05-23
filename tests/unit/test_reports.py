@@ -49,8 +49,6 @@ class TestPrComment:
         out = generate_pr_comment(config, stages)
         assert "demo-board" in out
         assert "100 MHz" in out
-        assert "Cortex" in out
-        assert "m4" in out
 
     def test_totals_correct(self, config: dict, stages: list[PathStage]) -> None:
         out = generate_pr_comment(config, stages)

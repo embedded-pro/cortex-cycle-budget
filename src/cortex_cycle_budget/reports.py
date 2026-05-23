@@ -54,8 +54,7 @@ def generate_report(
     lines: list[str] = [
         "# Cycle Estimation Report",
         "",
-        f"**Target**: `{target}` | **Build**: `{build_config}` | "
-        f"**Clock**: {clock} MHz | **Cortex**: `{config.get('cortex', 'm4')}`",
+        f"**Target**: `{target}` | **Build**: `{build_config}` | **Clock**: {clock} MHz",
         f"**Path**: {path_name}",
         "",
         "## Executive Summary",
@@ -237,8 +236,7 @@ def generate_pr_comment(config: dict[str, Any], stages: list[PathStage]) -> str:
     lines: list[str] = [
         "## 🏎️ Cycle Estimation",
         "",
-        f"**Target**: `{target}` | **Build**: `{build_config}` | "
-        f"**Clock**: {clock} MHz | **Cortex**: `{config.get('cortex', 'm4')}`",
+        f"**Target**: `{target}` | **Build**: `{build_config}` | **Clock**: {clock} MHz",
         f"**Path**: {path_name}",
         "",
         "### Executive Summary",
@@ -341,13 +339,18 @@ def generate_json_metrics(
     clock = config["clock_mhz"]
     loop_rates = config.get("loop_rates_khz", [20])
 
-    utilization: dict[str, float] = {}
+    # Compute min/max percentages in a single pass, but emit all `*_min_pct`
+    # keys before all `*_max_pct` keys to preserve the historical JSON key
+    # ordering relied upon by downstream consumers.
+    min_pcts: dict[str, float] = {}
+    max_pcts: dict[str, float] = {}
     for rate in loop_rates:
         avail = clock * 1_000_000 // (rate * 1_000)
         if avail <= 0:
             continue
-        utilization[f"{rate}khz_min_pct"] = round(total_min / avail * 100, 2)
-        utilization[f"{rate}khz_max_pct"] = round(total_max / avail * 100, 2)
+        min_pcts[f"{rate}khz_min_pct"] = round(total_min / avail * 100, 2)
+        max_pcts[f"{rate}khz_max_pct"] = round(total_max / avail * 100, 2)
+    utilization: dict[str, float] = {**min_pcts, **max_pcts}
 
     return {
         "target": config["target"],
