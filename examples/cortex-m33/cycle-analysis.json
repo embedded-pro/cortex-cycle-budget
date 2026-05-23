@@ -1,19 +1,26 @@
 {
-  "path_name": "ISR CRC32",
-  "loop_rates_khz": [1, 10],
-  "path_stages": [
-    {
-      "label": "ISR Entry",
-      "type": "exception_entry"
-    },
-    {
-      "label": "ISR Body",
-      "entry": "^isr_handler$",
-      "patterns": ["^isr_handler$", "^crc32$", "^crc32_byte$"]
-    },
-    {
-      "label": "ISR Exit",
-      "type": "exception_exit"
-    }
-  ]
+    "path_name": "ISR CRC32",
+    "loop_rates_khz": [
+        1,
+        10
+    ],
+    "path_stages": [
+        {
+            "label": "ISR Entry",
+            "type": "exception_entry"
+        },
+        {
+            "label": "ISR Body",
+            "entry": "^isr_handler$",
+            "patterns": [
+                "^isr_handler$",
+                "^crc32$",
+                "^crc32_byte$"
+            ]
+        },
+        {
+            "label": "ISR Exit",
+            "type": "exception_exit"
+        }
+    ]
 }

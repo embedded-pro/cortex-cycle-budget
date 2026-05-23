@@ -1,49 +1,97 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/your-org/cortex-cycle-budget/blob/main/docs/cycle-analysis.schema.json",
-  "title": "cortex-cycle-budget configuration",
-  "type": "object",
-  "required": ["path_stages"],
-  "additionalProperties": true,
-  "properties": {
-    "path_name": { "type": "string" },
-    "target": { "type": "string" },
-    "build_config": { "type": "string" },
-    "clock_mhz": { "type": "integer", "minimum": 1 },
-    "cortex": { "enum": ["m0", "m4", "m7", "m33"] },
-    "loop_rates_khz": {
-      "type": "array",
-      "items": { "type": "integer", "minimum": 1 }
-    },
-    "path_stages": {
-      "type": "array",
-      "minItems": 1,
-      "items": { "$ref": "#/definitions/stage" }
-    }
-  },
-  "definitions": {
-    "stage": {
-      "type": "object",
-      "required": ["label"],
-      "additionalProperties": false,
-      "oneOf": [
-        {
-          "required": ["patterns"],
-          "properties": {
-            "label":   { "type": "string" },
-            "patterns":{ "type": "array", "items": { "type": "string" }, "minItems": 1 },
-            "entry":   { "type": "string" },
-            "required":{ "type": "boolean" }
-          }
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://github.com/your-org/cortex-cycle-budget/blob/main/docs/cycle-analysis.schema.json",
+    "title": "cortex-cycle-budget configuration",
+    "type": "object",
+    "required": [
+        "path_stages"
+    ],
+    "additionalProperties": true,
+    "properties": {
+        "path_name": {
+            "type": "string"
         },
-        {
-          "required": ["type"],
-          "properties": {
-            "label": { "type": "string" },
-            "type":  { "enum": ["exception_entry", "exception_exit"] }
-          }
+        "target": {
+            "type": "string"
+        },
+        "build_config": {
+            "type": "string"
+        },
+        "clock_mhz": {
+            "type": "integer",
+            "minimum": 1
+        },
+        "cortex": {
+            "enum": [
+                "m0",
+                "m4",
+                "m7",
+                "m33"
+            ]
+        },
+        "loop_rates_khz": {
+            "type": "array",
+            "items": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        "path_stages": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/definitions/stage"
+            }
         }
-      ]
+    },
+    "definitions": {
+        "stage": {
+            "type": "object",
+            "required": [
+                "label"
+            ],
+            "additionalProperties": false,
+            "oneOf": [
+                {
+                    "required": [
+                        "patterns"
+                    ],
+                    "properties": {
+                        "label": {
+                            "type": "string"
+                        },
+                        "patterns": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "minItems": 1
+                        },
+                        "entry": {
+                            "type": "string"
+                        },
+                        "required": {
+                            "type": "boolean"
+                        }
+                    }
+                },
+                {
+                    "required": [
+                        "type"
+                    ],
+                    "properties": {
+                        "label": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "enum": [
+                                "exception_entry",
+                                "exception_exit"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
     }
-  }
 }
