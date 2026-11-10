@@ -8,7 +8,8 @@ parsing ``arm-none-eabi-objdump`` output.
 Public API:
     parse_disassembly        — disassembly → Function list
     analyze_stages           — Function list + config → PathStage list
-    walk_call_graph          — recursive cycle attribution
+    analyze_paths            — worst/best path per function, callees included
+    path_breakdown           — per-function share of a worst path
     generate_report          — full markdown report
     generate_pr_comment      — concise PR comment markdown
     generate_cpu_budget_table — budget table only (markdown)
@@ -24,16 +25,19 @@ Public API:
 
 from __future__ import annotations
 
-from cortex_cycle_budget.analysis import analyze_stages, walk_call_graph
+from cortex_cycle_budget.analysis import analyze_stages, path_breakdown, path_options
 from cortex_cycle_budget.config import validate_config
 from cortex_cycle_budget.models import (
     ConfigError,
     Function,
+    FunctionPath,
+    FunctionShare,
     Instruction,
     PathStage,
     StageMatchError,
 )
 from cortex_cycle_budget.parser import parse_disassembly
+from cortex_cycle_budget.paths import PathOptions, analyze_paths
 from cortex_cycle_budget.reports import (
     generate_annotated_disasm,
     generate_cpu_budget_table,
@@ -49,6 +53,7 @@ from cortex_cycle_budget.timing_model import (
     VARIANT_OVERRIDES,
     classify_instruction,
     get_timing,
+    instruction_timing,
     normalize_mnemonic,
     resolve_timing_table,
 )
@@ -64,10 +69,14 @@ __all__ = [
     "VARIANT_OVERRIDES",
     "ConfigError",
     "Function",
+    "FunctionPath",
+    "FunctionShare",
     "Instruction",
+    "PathOptions",
     "PathStage",
     "StageMatchError",
     "__version__",
+    "analyze_paths",
     "analyze_stages",
     "classify_instruction",
     "generate_annotated_disasm",
@@ -76,12 +85,14 @@ __all__ = [
     "generate_pr_comment",
     "generate_report",
     "get_timing",
+    "instruction_timing",
     "log",
     "normalize_mnemonic",
     "parse_disassembly",
+    "path_breakdown",
+    "path_options",
     "resolve_timing_table",
     "run_objdump",
     "run_size",
     "validate_config",
-    "walk_call_graph",
 ]

@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
-from cortex_cycle_budget.analysis import walk_call_graph
 from cortex_cycle_budget.models import Function, PathStage
-from cortex_cycle_budget.timing_model import classify_instruction
+from cortex_cycle_budget.timing_model import classify_instruction, is_data
 
 
 def _budget_status(pct_max: float) -> str:
@@ -63,9 +61,9 @@ def generate_report(
         "|--------|-------|",
         f"| Estimated Cycles (min) | **{total_min}** |",
         f"| Estimated Cycles (max) | **{total_max}** |",
-        f"| Total Instructions | {total_instructions} |",
-        f"| Total Code Size | {total_code_size} bytes |",
-        f"| FPU Operations | {total_fpu} |",
+        f"| Instructions on Worst Path | {total_instructions} |",
+        f"| Code Size of Functions on Path | {total_code_size} bytes |",
+        f"| FPU Operations on Worst Path | {total_fpu} |",
         f"| Path Stages | {len(stages)} |",
         "",
         "## CPU Utilization Budget",
@@ -107,31 +105,27 @@ def generate_report(
     lines.append("")
 
     # ── Per-Function Detail ───────────────────────────────────────────────
-    for scfg in config["path_stages"]:
-        if not scfg.get("entry"):
+    for stage in stages:
+        if stage.is_overhead or not stage.breakdown:
             continue
-        entry_pattern = scfg["entry"]
-        entry_fn = next(
-            (fn for fn in all_fns if re.search(entry_pattern, fn.demangled)),
-            None,
-        )
-        if entry_fn is None:
-            continue
-        breakdown = walk_call_graph(entry_fn, lookup)
-        lines.append(f"## Per-Function Detail — {scfg['label']}")
+        lines.append(f"## Per-Function Detail — {stage.label}")
         lines.append("")
-        lines.append("| Function | Calls | Min Cycles | Max Cycles | FPU | Load/Store | Branch | ALU |")
-        lines.append("|----------|-------|-----------|-----------|-----|------------|--------|-----|")
-
-        sorted_fns = sorted(breakdown.items(), key=lambda x: x[1]["max"], reverse=True)
-        for fn_name, stats in sorted_fns:
-            short = fn_name[:60] + "..." if len(fn_name) > 60 else fn_name
+        lines.append("| Function | Calls | Max Cycles | Instructions on Path | FPU |")
+        lines.append("|----------|-------|-----------|----------------------|-----|")
+        for share in stage.breakdown:
+            short = share.function[:100] + "..." if len(share.function) > 100 else share.function
             lines.append(
-                f"| `{short}` | {stats['call_count']}x "
-                f"| {stats['min']} | {stats['max']} "
-                f"| {stats['fpu_ops']} | {stats['load_store']} "
-                f"| {stats['branch']} | {stats['alu']} |"
+                f"| `{short}` | {share.calls}x | {share.max_cycles} "
+                f"| {share.instructions} | {share.fpu_ops} |"
             )
+        lines.append("")
+
+    # ── Analysis Notes ────────────────────────────────────────────────────
+    if any(stage.notes for stage in stages):
+        lines.extend(("## Analysis Notes", ""))
+        for stage in stages:
+            for note in stage.notes:
+                lines.append(f"- **{stage.label}**: {note}")
         lines.append("")
 
     # ── Instruction Mix ───────────────────────────────────────────────────
@@ -244,7 +238,7 @@ def generate_pr_comment(config: dict[str, Any], stages: list[PathStage]) -> str:
         "| Metric | Value |",
         "|--------|-------|",
         f"| Estimated Cycles (min — max) | **{total_min}** — **{total_max}** |",
-        f"| Total Instructions | {total_instructions} |",
+        f"| Instructions on Worst Path | {total_instructions} |",
         f"| Code Size | {total_code_size} bytes |",
         f"| Path Stages | {len(stages)} |",
         "",
@@ -262,6 +256,12 @@ def generate_pr_comment(config: dict[str, Any], stages: list[PathStage]) -> str:
         lines.append(f"| {stage.label} | {stage.min_cycles}–{stage.max_cycles} | {pct:.0f}% |")
     lines.append(f"| **Total** | **{total_min}–{total_max}** | |")
     lines.append("")
+    note_count = sum(len(stage.notes) for stage in stages)
+    if note_count:
+        lines.append(
+            f"> ⚠️ {note_count} analysis note(s) — calls not followed, loops counted once — "
+            "are listed in the full report."
+        )
     lines.append("> 📦 Full report, annotated disassembly and JSON metrics available in workflow artifacts.")
 
     return "\n".join(lines)
@@ -283,6 +283,7 @@ def generate_annotated_disasm(
         if stage.is_overhead:
             continue
         lines.extend((f"## Stage: {stage.label}", ""))
+        shares = {share.function: share for share in stage.breakdown}
 
         for fn_name in sorted(stage.functions):
             if fn_name in seen:
@@ -293,15 +294,19 @@ def generate_annotated_disasm(
                 continue
 
             short = fn_name[:80] + "..." if len(fn_name) > 80 else fn_name
+            share = shares.get(fn_name)
+            on_path = share.addresses if share is not None else frozenset()
             lines.extend((f"### `{short}`", ""))
             lines.append(
                 f"Address: `0x{fn.start_addr:08x}`–`0x{fn.end_addr:08x}` "
                 f"| {fn.code_size} bytes | {fn.instruction_count} instructions "
-                f"| {fn.total_min_cycles}–{fn.total_max_cycles} cycles"
+                f"| worst path {len(on_path)} instructions"
+                + (f", {share.max_cycles // max(share.calls, 1)} cycles" if share is not None else "")
             )
             lines.extend((
                 "",
                 "```asm",
+                "; '>' marks the instructions on the worst path",
                 f"; {'Addr':>10s}  {'Bytes':<14s}  {'Mn':>3s} {'Mx':>3s}  Instruction",
                 f"; {'-' * 10}  {'-' * 14}  {'-' * 3} {'-' * 3}  {'-' * 40}",
             ))
@@ -310,8 +315,9 @@ def generate_annotated_disasm(
                 cat = classify_instruction(instr.mnemonic)
                 marker = {"fpu": "F", "load_store": "M", "branch": "B",
                           "mul_div": "X"}.get(cat, " ")
+                lead = ">" if instr.address in on_path and not is_data(instr.mnemonic) else " "
                 lines.append(
-                    f"  0x{instr.address:08x}  {instr.raw_bytes:<14s}  "
+                    f"{lead} 0x{instr.address:08x}  {instr.raw_bytes:<14s}  "
                     f"{instr.min_cycles:>3d} {instr.max_cycles:>3d} {marker} "
                     f"{instr.mnemonic}\t{instr.operands}"
                 )
@@ -376,6 +382,17 @@ def generate_json_metrics(
                 "fpu_ops": s.fpu_ops,
                 "is_overhead": s.is_overhead,
                 "functions": s.functions,
+                "indirect_calls": s.indirect_calls,
+                "notes": s.notes,
+                "breakdown": [
+                    {
+                        "function": share.function,
+                        "calls": share.calls,
+                        "max_cycles": share.max_cycles,
+                        "instructions": share.instructions,
+                    }
+                    for share in s.breakdown
+                ],
             }
             for s in stages
         ],

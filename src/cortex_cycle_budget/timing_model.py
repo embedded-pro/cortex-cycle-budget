@@ -17,6 +17,8 @@ References:
 
 from __future__ import annotations
 
+import re
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Supported variants
 # ──────────────────────────────────────────────────────────────────────────────
@@ -64,10 +66,12 @@ BASE_TIMING: dict[str, tuple[int, int]] = {
     "clz": (1, 1),
     # ── Load single ──────────────────────────────────────────────────────
     "ldr": (2, 2), "ldrb": (2, 2), "ldrh": (2, 2),
-    "ldrsb": (2, 2), "ldrsh": (2, 2), "ldrd": (2, 2),
+    "ldrsb": (2, 2), "ldrsh": (2, 2),
+    "ldrd": (3, 3),  # two words: 1 + N (DDI0439D Table 3-1)
     "ldr.w": (2, 2), "ldrb.w": (2, 2), "ldrh.w": (2, 2),
     # ── Store single ─────────────────────────────────────────────────────
-    "str": (2, 2), "strb": (2, 2), "strh": (2, 2), "strd": (2, 2),
+    "str": (2, 2), "strb": (2, 2), "strh": (2, 2),
+    "strd": (3, 3),  # two words: 1 + N
     "str.w": (2, 2), "strb.w": (2, 2), "strh.w": (2, 2),
     # ── Load / Store multiple ────────────────────────────────────────────
     "ldm": (1, 2), "ldmia": (1, 2), "ldmdb": (1, 2),
@@ -104,9 +108,11 @@ BASE_TIMING: dict[str, tuple[int, int]] = {
     # ── FPv4-SP-D16  (default: Cortex-M4 single-precision HW FPU) ────────
     "vadd.f32": (1, 1), "vsub.f32": (1, 1),
     "vmul.f32": (1, 1), "vnmul.f32": (1, 1),
-    "vfma.f32": (1, 1), "vfms.f32": (1, 1),
-    "vfnma.f32": (1, 1), "vfnms.f32": (1, 1),
+    # Multiply-accumulate, fused or not, is 3 cycles: DDI0439D Table 7-1.
+    "vfma.f32": (3, 3), "vfms.f32": (3, 3),
+    "vfnma.f32": (3, 3), "vfnms.f32": (3, 3),
     "vmla.f32": (3, 3), "vmls.f32": (3, 3),
+    "vnmla.f32": (3, 3), "vnmls.f32": (3, 3),
     "vneg.f32": (1, 1), "vabs.f32": (1, 1),
     "vcmp.f32": (1, 1), "vcmpe.f32": (1, 1),
     "vmov": (1, 1), "vmov.f32": (1, 1), "vmov.f64": (1, 1),
@@ -277,8 +283,10 @@ def normalize_mnemonic(
 
 
 def classify_instruction(mnemonic: str) -> str:
-    """Return one of: ``fpu``, ``load_store``, ``branch``, ``mul_div``, ``alu``."""
+    """Return one of: ``fpu``, ``load_store``, ``branch``, ``mul_div``, ``alu``, ``data``."""
     m = mnemonic.lower()
+    if is_data(m):
+        return "data"
     if m.startswith("v"):
         if any(x in m for x in ("ldr", "str", "push", "pop", "ldm", "stm")):
             return "load_store"
@@ -294,6 +302,69 @@ def classify_instruction(mnemonic: str) -> str:
     )):
         return "mul_div"
     return "alu"
+
+
+_REGISTER_LIST = re.compile(r"\{([^}]*)\}")
+
+# Instructions whose cost grows with the registers they transfer (DDI0439D
+# Table 3-1: LDM, STM, PUSH, POP are 1 + N; Table 7-1: VLDM, VSTM, VPUSH, VPOP
+# are 1 + N for single-precision registers and 1 + 2N for doubles).
+_MULTI_REGISTER = ("push", "pop", "ldm", "stm")
+_MULTI_REGISTER_FPU = ("vpush", "vpop", "vldm", "vstm")
+_PIPELINE_REFILL = (1, 3)
+
+
+def is_data(mnemonic: str) -> bool:
+    """True for assembler data directives (``.word``, ``.short``, ``.byte``)."""
+    return mnemonic.startswith(".")
+
+
+def register_words(operands: str) -> int:
+    """Count the 32-bit words named by a register list such as ``{r4-r7, lr}``.
+
+    A double-precision register (``d8``) counts as two words. Returns 0 when
+    *operands* holds no register list.
+    """
+    match = _REGISTER_LIST.search(operands)
+    if match is None:
+        return 0
+    words = 0
+    for item in match.group(1).split(","):
+        item = item.strip().lower()
+        if not item:
+            continue
+        first, _, last = item.partition("-")
+        width = 2 if first.startswith("d") else 1
+        span = 1
+        if last and first[1:].isdigit() and last[1:].isdigit():
+            span = int(last[1:]) - int(first[1:]) + 1
+        words += max(span, 1) * width
+    return words
+
+
+def instruction_timing(
+    mnemonic: str,
+    operands: str = "",
+    timing: dict[str, tuple[int, int]] | None = None,
+) -> tuple[int, int]:
+    """(min, max) cycles for one instruction, taking its operands into account.
+
+    Data directives cost nothing. Register-list transfers cost ``1 + N``, plus
+    the pipeline refill when the list loads ``pc``. Everything else is
+    :func:`get_timing`.
+    """
+    m = mnemonic.lower().strip()
+    if is_data(m):
+        return (0, 0)
+    stem = m.split(".")[0]
+    if stem.startswith(_MULTI_REGISTER_FPU) or stem.startswith(_MULTI_REGISTER):
+        words = register_words(operands)
+        if words:
+            cost = 1 + words
+            if "pc" in operands.lower() and not stem.startswith("v"):
+                return (cost + _PIPELINE_REFILL[0], cost + _PIPELINE_REFILL[1])
+            return (cost, cost)
+    return get_timing(mnemonic, timing)
 
 
 def get_timing(

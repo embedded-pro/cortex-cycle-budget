@@ -5,7 +5,11 @@ from __future__ import annotations
 import re
 
 from cortex_cycle_budget.models import Function, Instruction
-from cortex_cycle_budget.timing_model import classify_instruction, get_timing
+from cortex_cycle_budget.timing_model import (
+    classify_instruction,
+    instruction_timing,
+    is_data,
+)
 
 _FN_PATTERN = re.compile(r"^([0-9a-fA-F]+)\s+<(.+?)>:$")
 _INSTR_PATTERN = re.compile(
@@ -50,7 +54,7 @@ def parse_disassembly(
             mnemonic = instr_match.group(3).strip()
             operands = instr_match.group(4).strip()
             byte_count = len(raw_bytes.replace(" ", "")) // 2
-            min_c, max_c = get_timing(mnemonic, timing)
+            min_c, max_c = instruction_timing(mnemonic, operands, timing)
 
             instr = Instruction(
                 address=addr,
@@ -77,7 +81,7 @@ def parse_disassembly(
 
 
 def _finalize(fn: Function) -> None:
-    fn.instruction_count = len(fn.instructions)
+    fn.instruction_count = sum(1 for i in fn.instructions if not is_data(i.mnemonic))
     fn.total_min_cycles = sum(i.min_cycles for i in fn.instructions)
     fn.total_max_cycles = sum(i.max_cycles for i in fn.instructions)
     fn.code_size = sum(i.size for i in fn.instructions)
@@ -85,6 +89,8 @@ def _finalize(fn: Function) -> None:
         fn.end_addr = fn.instructions[-1].address + fn.instructions[-1].size
     for instr in fn.instructions:
         cat = classify_instruction(instr.mnemonic)
+        if cat == "data":
+            continue
         if cat == "fpu":
             fn.fpu_ops += 1
         elif cat == "load_store":

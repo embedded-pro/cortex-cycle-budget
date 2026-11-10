@@ -27,7 +27,8 @@ fixed cycle budget.
 | Cortex-M0 / M4 / M7 / M33 timing models           |   ✅   |
 | FPU costs (`vsqrt.f32`, `vdiv.f32`, …)            |   ✅   |
 | Exception entry/exit overhead (per-variant)       |   ✅   |
-| Call-graph walking from an entry function         |   ✅   |
+| Worst-path costing: branches, loops, direct calls |   ✅   |
+| Alternatives (`combine: max`), loop bounds        |   ✅   |
 | Strict & non-strict pattern matching              |   ✅   |
 | CPU-utilization budget table at N kHz             |   ✅   |
 | Annotated disassembly (Markdown)                  |   ✅   |
@@ -66,7 +67,10 @@ you need `arm-none-eabi-objdump` (and optionally `arm-none-eabi-size`) on
 }
 ```
 
-See [docs/config-schema.md](docs/config-schema.md) for the full schema.
+A stage is charged the worst path through the functions it names and the
+functions they call directly, not the sum of their instructions. See
+[docs/path-analysis.md](docs/path-analysis.md) for how a path is costed and
+[docs/config-schema.md](docs/config-schema.md) for the full schema.
 
 ### 3. Run
 

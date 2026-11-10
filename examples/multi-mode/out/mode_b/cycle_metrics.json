@@ -5,14 +5,14 @@
   "cortex": "m4",
   "path": "Mode B \u2014 Sensorless",
   "summary": {
-    "estimated_min_cycles": 23,
+    "estimated_min_cycles": 25,
     "estimated_max_cycles": 37,
-    "total_instructions": 20,
+    "total_instructions": 18,
     "total_code_size_bytes": 54,
     "path_stages": 3
   },
   "utilization": {
-    "20khz_min_pct": 0.46,
+    "20khz_min_pct": 0.5,
     "20khz_max_pct": 0.74
   },
   "stages": [
@@ -26,30 +26,60 @@
       "is_overhead": false,
       "functions": [
         "observer"
+      ],
+      "indirect_calls": 0,
+      "notes": [],
+      "breakdown": [
+        {
+          "function": "observer",
+          "calls": 1,
+          "max_cycles": 6,
+          "instructions": 3
+        }
       ]
     },
     {
       "label": "PID Loop",
-      "min_cycles": 15,
-      "max_cycles": 18,
-      "instructions": 12,
+      "min_cycles": 13,
+      "max_cycles": 16,
+      "instructions": 10,
       "code_size_bytes": 28,
       "fpu_ops": 0,
       "is_overhead": false,
       "functions": [
         "pid_loop"
+      ],
+      "indirect_calls": 0,
+      "notes": [],
+      "breakdown": [
+        {
+          "function": "pid_loop",
+          "calls": 1,
+          "max_cycles": 16,
+          "instructions": 10
+        }
       ]
     },
     {
       "label": "Mode B Wrap",
-      "min_cycles": 5,
-      "max_cycles": 13,
+      "min_cycles": 9,
+      "max_cycles": 15,
       "instructions": 5,
       "code_size_bytes": 16,
       "fpu_ops": 0,
       "is_overhead": false,
       "functions": [
         "mode_b_step"
+      ],
+      "indirect_calls": 0,
+      "notes": [],
+      "breakdown": [
+        {
+          "function": "mode_b_step",
+          "calls": 1,
+          "max_cycles": 15,
+          "instructions": 5
+        }
       ]
     }
   ]

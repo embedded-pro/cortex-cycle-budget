@@ -79,6 +79,26 @@ Used by the `exception_entry` / `exception_exit` stage types.
 
 ---
 
+### Register lists
+
+`push`, `pop`, `ldm`, `stm` cost `1 + N` for `N` registers, plus the pipeline
+refill (1–3) when the list loads `pc`. `vpush`, `vpop`, `vldm`, `vstm` cost
+`1 + N` words: a double-precision register is two. `ldrd`/`strd` cost 3.
+(ARM DDI 0439D Tables 3-1 and 7-1.)
+
+### Branches
+
+A branch costs `1 + P` when taken, `P` being the pipeline refill, and 1 when
+not. The table holds the taken cost; the path analysis charges 1 cycle on the
+path that falls through. See [path-analysis.md](path-analysis.md).
+
+### Data
+
+Literal pools and jump tables (`.word`, `.short`, `.byte`) cost nothing and
+are not counted as instructions.
+
+---
+
 ## Heuristics for unknown mnemonics
 
 When `normalize_mnemonic()` does not find an exact entry (after stripping
@@ -102,6 +122,8 @@ relevant `VARIANT_OVERRIDES` entry is usually a 1-line PR.
 
 ## What is **not** modeled
 
+- Flash wait states: a taken branch or a literal load from wait-stated flash
+  costs more than the table says.
 - I-cache / D-cache hits & misses (Cortex-M7).
 - AXI bus contention.
 - TCM vs. external memory wait states.

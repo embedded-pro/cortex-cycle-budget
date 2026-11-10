@@ -5,17 +5,17 @@
   "cortex": "m33",
   "path": "ISR CRC32",
   "summary": {
-    "estimated_min_cycles": 25,
-    "estimated_max_cycles": 62,
-    "total_instructions": 1,
-    "total_code_size_bytes": 4,
+    "estimated_min_cycles": 42,
+    "estimated_max_cycles": 113,
+    "total_instructions": 22,
+    "total_code_size_bytes": 60,
     "path_stages": 3
   },
   "utilization": {
-    "1khz_min_pct": 0.02,
-    "1khz_max_pct": 0.06,
-    "10khz_min_pct": 0.23,
-    "10khz_max_pct": 0.56
+    "1khz_min_pct": 0.04,
+    "10khz_min_pct": 0.38,
+    "1khz_max_pct": 0.1,
+    "10khz_max_pct": 1.03
   },
   "stages": [
     {
@@ -26,18 +26,47 @@
       "code_size_bytes": 0,
       "fpu_ops": 0,
       "is_overhead": true,
-      "functions": []
+      "functions": [],
+      "indirect_calls": 0,
+      "notes": [],
+      "breakdown": []
     },
     {
       "label": "ISR Body",
-      "min_cycles": 1,
-      "max_cycles": 4,
-      "instructions": 1,
-      "code_size_bytes": 4,
+      "min_cycles": 18,
+      "max_cycles": 55,
+      "instructions": 22,
+      "code_size_bytes": 60,
       "fpu_ops": 0,
       "is_overhead": false,
       "functions": [
+        "crc32",
+        "crc32_byte",
         "isr_handler"
+      ],
+      "indirect_calls": 0,
+      "notes": [
+        "loops are charged for one iteration, set `loop_bounds` to charge more: `crc32` (1), `crc32_byte` (1)"
+      ],
+      "breakdown": [
+        {
+          "function": "crc32",
+          "calls": 1,
+          "max_cycles": 34,
+          "instructions": 11
+        },
+        {
+          "function": "crc32_byte",
+          "calls": 1,
+          "max_cycles": 17,
+          "instructions": 10
+        },
+        {
+          "function": "isr_handler",
+          "calls": 1,
+          "max_cycles": 4,
+          "instructions": 1
+        }
       ]
     },
     {
@@ -48,7 +77,10 @@
       "code_size_bytes": 0,
       "fpu_ops": 0,
       "is_overhead": true,
-      "functions": []
+      "functions": [],
+      "indirect_calls": 0,
+      "notes": [],
+      "breakdown": []
     }
   ]
 }

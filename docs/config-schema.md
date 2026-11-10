@@ -1,8 +1,9 @@
 # Configuration schema
 
 The JSON config file describes one **critical path** as an ordered sequence of
-**stages**. Each stage selects functions by regex; the analyzer attributes
-their cycle costs to that stage.
+**stages**. Each stage selects functions by regex; the analyzer charges the
+stage the worst path through them. [path-analysis.md](path-analysis.md)
+explains how a path is costed.
 
 A machine-readable JSON Schema lives at
 [cycle-analysis.schema.json](cycle-analysis.schema.json).
@@ -20,6 +21,8 @@ A machine-readable JSON Schema lives at
 | `build_config`   | string              |    ⬜    | Overridden by `--build-config`.                                             |
 | `clock_mhz`      | integer             |    ⬜    | Overridden by `--clock-mhz`.                                                |
 | `cortex`         | enum                |    ⬜    | One of `m0`, `m4`, `m7`, `m33`. Overridden by `--cortex`.                   |
+| `loop_bounds`    | object              |    ⬜    | Function-name regex → iterations charged to every loop in that function.    |
+| `cold_calls`     | array<string>       |    ⬜    | Function-name regexes. A path that calls one is left out of the worst path. |
 
 ---
 
@@ -30,7 +33,8 @@ Each entry of `path_stages` is one of two shapes.
 ### 1. Pattern stage
 
 Matches all functions whose demangled name matches **any** of the regex
-patterns in `patterns`.
+patterns in `patterns`. Each one is charged its worst path, with the functions
+that path calls directly.
 
 ```json
 {
@@ -45,7 +49,8 @@ patterns in `patterns`.
 | ---------- | --------------- | :------: | ---------------------------------------------------------------------------------------------------- |
 | `label`    | string          |    ✅    | Display name in reports.                                                                             |
 | `patterns` | array<string>   |    ✅    | Function-name regexes (Python `re` syntax).                                                          |
-| `entry`    | string          |    ⬜    | Regex selecting the **call-graph entry** for this stage. When set, the analyzer walks all callees.   |
+| `entry`    | string          |    ⬜    | Regex selecting the one matched function the stage is charged. The others only locate it.           |
+| `combine`  | enum            |    ⬜    | `sum` (default): the matched functions all run. `max`: one of them runs; charge the costliest.       |
 | `required` | bool            |    ⬜    | When `false`, a stage that matches nothing does not fail strict mode. Default: `true`.               |
 
 ### 2. Architectural stage
@@ -80,10 +85,11 @@ See [timing-model.md](timing-model.md) for the per-variant values.
 }
 ```
 
-### Call-graph walk
+### Direct calls
 
-When `entry` is provided, the analyzer attributes cycles for **every** callee
-reachable from the entry, not just functions matching `patterns`.
+Direct calls are followed from every matched function, so a stage needs to
+name only where it starts. Calls through a register are not followed: name
+their targets.
 
 ```json
 {
@@ -94,6 +100,20 @@ reachable from the entry, not just functions matching `patterns`.
       "entry": "^foc_step$",
       "patterns": ["^foc_step$"]
     }
+  ]
+}
+```
+
+### Alternatives, loop bounds and fault paths
+
+```json
+{
+  "loop_bounds": {"^adc_drain$": 6},
+  "cold_calls": ["^trip_over_current$"],
+  "path_stages": [
+    {"label": "ADC",  "patterns": ["^adc_isr$"]},
+    {"label": "Mode", "combine": "max", "patterns": ["^torque_step$", "^speed_step$"]},
+    {"label": "PWM",  "patterns": ["^pwm_write$"]}
   ]
 }
 ```
@@ -121,6 +141,9 @@ The CLI calls `validate_config()` before analysis. Errors include:
 - Stage with neither `type` nor `patterns`.
 - Invalid `type` value.
 - Unparseable `patterns` or `entry` regex.
+- `combine` other than `sum` or `max`.
+- `loop_bounds` that is not an object of regex → positive integer.
+- `cold_calls` that is not a list of regexes.
 - Non-positive `loop_rates_khz` entries.
 - `cortex` not in `{m0, m4, m7, m33}`.
 - `clock_mhz <= 0`.
