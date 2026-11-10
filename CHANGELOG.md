@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0](https://github.com/embedded-pro/cortex-cycle-budget/compare/v0.2.0...v1.0.0) (2026-11-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* estimates change for every configuration. A stage that lists alternatives must set `"combine": "max"`. `walk_call_graph` is removed; use `analyze_paths` and `path_breakdown`.
+
+### Features
+
+* charge a stage its worst path instead of every instruction ([#65](https://github.com/embedded-pro/cortex-cycle-budget/issues/65)) ([f811ba2](https://github.com/embedded-pro/cortex-cycle-budget/commit/f811ba257bdde96295fd64dc8289c6db060937ee))
+
 ## [0.2.0](https://github.com/embedded-pro/cortex-cycle-budget/compare/v0.1.0...v0.2.0) (2026-05-23)
 
 
