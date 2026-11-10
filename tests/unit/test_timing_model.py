@@ -11,7 +11,9 @@ from cortex_cycle_budget.timing_model import (
     VARIANT_OVERRIDES,
     classify_instruction,
     get_timing,
+    instruction_timing,
     normalize_mnemonic,
+    register_words,
     resolve_timing_table,
 )
 
@@ -140,3 +142,50 @@ class TestGetTiming:
 
     def test_unknown_alu_heuristic(self) -> None:
         assert get_timing("frobnicate") == (1, 1)
+
+
+class TestMultiplyAccumulate:
+    @pytest.mark.parametrize("mnemonic", [
+        "vfma.f32", "vfms.f32", "vfnma.f32", "vfnms.f32",
+        "vmla.f32", "vmls.f32", "vnmla.f32", "vnmls.f32",
+    ])
+    def test_three_cycles_on_cortex_m4(self, mnemonic: str) -> None:
+        # ARM DDI0439D Table 7-1
+        assert get_timing(mnemonic, resolve_timing_table("m4")) == (3, 3)
+
+
+class TestRegisterWords:
+    @pytest.mark.parametrize(("operands", "words"), [
+        ("{lr}", 1),
+        ("{r4, r5, r6, lr}", 4),
+        ("{r4-r7, lr}", 5),
+        ("sp!, {r4, r5, r6, r7, r8, pc}", 6),
+        ("{s16-s19}", 4),
+        ("{d8-d12}", 10),
+        ("r0, r1", 0),
+    ])
+    def test_counts_words(self, operands: str, words: int) -> None:
+        assert register_words(operands) == words
+
+
+class TestInstructionTiming:
+    @pytest.mark.parametrize(("mnemonic", "operands", "expected"), [
+        ("push", "{r4, r5, lr}", (4, 4)),
+        ("pop", "{r4, r5}", (3, 3)),
+        ("pop", "{r4, pc}", (4, 6)),
+        ("ldmia.w", "sp!, {r4, r5, r6, lr}", (5, 5)),
+        ("stmia.w", "ip, {r0, r1, r2}", (4, 4)),
+        ("vpush", "{d8-d12}", (11, 11)),
+        ("vpop", "{s16-s17}", (3, 3)),
+        ("ldrd", "r1, r2, [sp]", (3, 3)),
+        ("strd", "r1, r2, [sp, #24]", (3, 3)),
+        (".word", "0x20000000", (0, 0)),
+        ("adds", "r0, #1", (1, 1)),
+    ])
+    def test_cost_follows_the_operands(
+        self, mnemonic: str, operands: str, expected: tuple[int, int],
+    ) -> None:
+        assert instruction_timing(mnemonic, operands) == expected
+
+    def test_data_is_classified_as_data(self) -> None:
+        assert classify_instruction(".word") == "data"

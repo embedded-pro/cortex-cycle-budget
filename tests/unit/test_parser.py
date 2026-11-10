@@ -87,6 +87,20 @@ class TestParseDisassembly:
         # bx lr is 2 bytes (one 16-bit Thumb instruction)
         assert bar.code_size == 2
 
+    def test_register_lists_cost_one_cycle_plus_one_per_word(self) -> None:
+        fns = parse_disassembly(SAMPLE_DISASM)
+        push, _, _, pop, _ = fns[0].instructions
+        assert (push.min_cycles, push.max_cycles) == (2, 2)
+        # pop {pc}: one word, then the pipeline refills
+        assert (pop.min_cycles, pop.max_cycles) == (3, 5)
+
+    def test_data_is_not_an_instruction(self) -> None:
+        disasm = SAMPLE_DISASM + "     11a:\tbf00      \tnop\n     11c:\t20000000 \t.word\t0x20000000\n"
+        fpu = parse_disassembly(disasm)[2]
+        assert fpu.instruction_count == 4
+        assert fpu.instructions[-1].max_cycles == 0
+        assert fpu.code_size == 4 + 4 + 2 + 2 + 4
+
     def test_empty_input(self) -> None:
         assert parse_disassembly("") == []
 
