@@ -58,6 +58,20 @@ WHILE = """
      40c:	4770      	bx	lr
 """
 
+NESTED = """
+00000f00 <nested>:
+     f00:	2200      	movs	r2, #0
+     f02:	2300      	movs	r3, #0
+     f04:	3001      	adds	r0, #1
+     f06:	3301      	adds	r3, #1
+     f08:	2b03      	cmp	r3, #3
+     f0a:	d1fb      	bne.n	f04 <nested+0x4>
+     f0c:	3201      	adds	r2, #1
+     f0e:	2a03      	cmp	r2, #3
+     f10:	d1f7      	bne.n	f02 <nested+0x2>
+     f12:	4770      	bx	lr
+"""
+
 CALLER = """
 00000500 <caller>:
      500:	b510      	push	{r4, lr}
@@ -226,6 +240,17 @@ class TestLoops:
     def test_loop_bound_applies_to_matching_functions_only(self) -> None:
         path = _path(_functions(DO_WHILE), "do_while", PathOptions(loop_bounds={"^other$": 4}))
         assert path.loop_bound is None
+
+    def test_loop_bound_multiplies_through_nested_loops(self) -> None:
+        path = _path(_functions(NESTED), "nested", PathOptions(loop_bounds={"^nested$": 3}))
+        inner = 1 + 1 + 1 + 4
+        outer_only = 1 + 1 + 1 + 4
+        assert path.max_cycles == 1 + 9 * inner + 3 * outer_only + 4
+
+    def test_nested_loops_without_a_bound_are_charged_once(self) -> None:
+        path = _path(_functions(NESTED), "nested")
+        assert path.max_cycles == 1 + (1 + 1 + 1 + 4) + (1 + 1 + 1 + 4) + 4
+        assert path.unbounded_loops == 2
 
     def test_body_ending_in_a_jump_back_is_on_the_worst_path(self) -> None:
         path = _path(_functions(WHILE), "while_loop")
