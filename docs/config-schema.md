@@ -21,7 +21,7 @@ A machine-readable JSON Schema lives at
 | `build_config`   | string              |    ⬜    | Overridden by `--build-config`.                                             |
 | `clock_mhz`      | integer             |    ⬜    | Overridden by `--clock-mhz`.                                                |
 | `cortex`         | enum                |    ⬜    | One of `m0`, `m4`, `m7`, `m33`. Overridden by `--cortex`.                   |
-| `loop_bounds`    | object              |    ⬜    | Function-name regex → iterations charged to every loop in that function.    |
+| `loop_bounds`    | object              |    ⬜    | Function-name regex → iterations of every loop in that function; nested loops multiply. |
 | `cold_calls`     | array<string>       |    ⬜    | Function-name regexes. A path that calls one is left out of the worst path. |
 
 ---
