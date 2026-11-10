@@ -6,7 +6,9 @@ import json
 
 import pytest
 
+from cortex_cycle_budget.analysis import analyze_stages
 from cortex_cycle_budget.models import PathStage
+from cortex_cycle_budget.parser import parse_disassembly
 from cortex_cycle_budget.reports import (
     generate_annotated_disasm,
     generate_cpu_budget_table,
@@ -110,3 +112,64 @@ class TestAnnotatedDisasm:
         out = generate_annotated_disasm(config, [], s)
         # No "## Stage: Overhead" because overhead stages are skipped
         assert "## Stage: Overhead" not in out
+
+
+ANALYZED_DISASM = """
+00000100 <isr>:
+     100:	b510      	push	{r4, lr}
+     102:	2800      	cmp	r0, #0
+     104:	d003      	beq.n	10e <isr+0xe>
+     106:	3001      	adds	r0, #1
+     108:	3001      	adds	r0, #1
+     10a:	3001      	adds	r0, #1
+     10c:	3001      	adds	r0, #1
+     10e:	4798      	blx	r3
+     110:	bd10      	pop	{r4, pc}
+     112:	bf00      	nop
+     114:	20000000 	.word	0x20000000
+"""
+
+
+@pytest.fixture
+def analyzed(config: dict) -> tuple[dict, list, list[PathStage]]:
+    functions = parse_disassembly(ANALYZED_DISASM)
+    cfg = {**config, "path_stages": [{"label": "ISR", "patterns": ["^isr$"]}]}
+    return cfg, functions, analyze_stages(cfg, functions, {f.demangled: f for f in functions})
+
+
+class TestPathReporting:
+    def test_report_lists_each_function_on_the_path(self, analyzed: tuple) -> None:
+        cfg, functions, stages = analyzed
+        out = generate_report(cfg, stages, functions, {f.demangled: f for f in functions})
+        assert "## Per-Function Detail — ISR" in out
+        assert "| `isr` | 1x |" in out
+
+    def test_report_lists_the_analysis_notes(self, analyzed: tuple) -> None:
+        cfg, functions, stages = analyzed
+        out = generate_report(cfg, stages, functions, {f.demangled: f for f in functions})
+        assert "## Analysis Notes" in out
+        assert "through a register" in out
+
+    def test_report_without_notes_has_no_notes_section(self, config: dict, stages: list[PathStage]) -> None:
+        assert "## Analysis Notes" not in generate_report(config, stages, [], {})
+
+    def test_pr_comment_points_at_the_notes(self, analyzed: tuple) -> None:
+        cfg, _, stages = analyzed
+        assert "1 analysis note(s)" in generate_pr_comment(cfg, stages)
+
+    def test_annotated_disassembly_marks_the_worst_path(self, analyzed: tuple) -> None:
+        cfg, functions, stages = analyzed
+        lines = generate_annotated_disasm(cfg, functions, stages).splitlines()
+        on_path = {line.split()[1] for line in lines if line.startswith("> 0x")}
+        off_path = {line.split()[0] for line in lines if line.startswith("  0x")}
+        assert on_path == {f"0x{address:08x}" for address in range(0x100, 0x112, 2)}
+        assert off_path == {"0x00000112", "0x00000114"}
+
+    def test_json_carries_breakdown_and_notes(self, analyzed: tuple) -> None:
+        cfg, _, stages = analyzed
+        (stage,) = generate_json_metrics(cfg, stages)["stages"]
+        assert stage["indirect_calls"] == 1
+        assert stage["breakdown"] == [
+            {"function": "isr", "calls": 1, "max_cycles": stage["max_cycles"], "instructions": 9},
+        ]
+        assert len(stage["notes"]) == 1

@@ -94,10 +94,12 @@ def test_end_to_end_single_mode(tmp_path: Path, cortex: str) -> None:
     m = json.loads(metrics_path.read_text())
     assert m["cortex"] == cortex
     assert m["summary"]["estimated_max_cycles"] > 0
-    # Both stages must have matched at least one function
+    # Each function is charged to the stage that names it
     labels = {s["label"]: s for s in m["stages"]}
     assert labels["Critical"]["functions"] == ["critical"]
     assert labels["Helper"]["functions"] == ["helper"]
+    assert labels["Critical"]["max_cycles"] > 0
+    assert labels["Helper"]["max_cycles"] > 0
 
 
 @pytest.mark.integration

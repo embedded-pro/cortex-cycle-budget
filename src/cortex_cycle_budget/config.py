@@ -42,6 +42,24 @@ def validate_config(config: dict[str, Any]) -> None:
             valid = ", ".join(sorted(SUPPORTED_VARIANTS))
             errors.append(f"'cortex' = {cortex!r} is not supported. Valid: {valid}")
 
+    bounds = config.get("loop_bounds", {})
+    if not isinstance(bounds, dict):
+        errors.append("'loop_bounds' must map function-name regexes to iteration counts")
+    else:
+        for pattern, iterations in bounds.items():
+            _validate_regex(pattern, f"'loop_bounds' key '{pattern}'", errors)
+            if not isinstance(iterations, int) or isinstance(iterations, bool) or iterations < 1:
+                errors.append(
+                    f"'loop_bounds' ['{pattern}'] must be a positive integer, got {iterations!r}"
+                )
+
+    cold = config.get("cold_calls", [])
+    if not isinstance(cold, list) or not all(isinstance(p, str) for p in cold):
+        errors.append("'cold_calls' must be a list of function-name regexes")
+    else:
+        for pattern in cold:
+            _validate_regex(pattern, f"'cold_calls' entry '{pattern}'", errors)
+
     if "clock_mhz" in config:
         clk = config["clock_mhz"]
         if not isinstance(clk, (int, float)) or isinstance(clk, bool) or clk <= 0:
@@ -52,6 +70,13 @@ def validate_config(config: dict[str, Any]) -> None:
             "Configuration validation failed:\n"
             + "\n".join(f"  • {e}" for e in errors)
         )
+
+
+def _validate_regex(pattern: str, what: str, errors: list[str]) -> None:
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        errors.append(f"{what} is not valid regex: {exc}")
 
 
 def _validate_stage(index: int, stage: Any, errors: list[str]) -> None:
@@ -83,6 +108,12 @@ def _validate_stage(index: int, stage: Any, errors: list[str]) -> None:
                 f"path_stages[{index}] ('{label}'): "
                 f"pattern[{j}] '{pat}' is not valid regex: {exc}"
             )
+
+    combine = stage.get("combine", "sum")
+    if combine not in ("sum", "max"):
+        errors.append(
+            f"path_stages[{index}] ('{label}'): unknown combine '{combine}'. Valid: sum, max"
+        )
 
     entry = stage.get("entry")
     if entry is not None:

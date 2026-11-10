@@ -1,54 +1,72 @@
 # Cycle Estimation Report
 
-**Target**: `demo-m4` | **Build**: `Release` | **Clock**: 100 MHz | **Cortex**: `m4`
+**Target**: `demo-m4` | **Build**: `Release` | **Clock**: 100 MHz
 **Path**: Mode B — Sensorless
 
 ## Executive Summary
 
 | Metric | Value |
 |--------|-------|
-| Estimated Cycles (min) | **23** |
+| Estimated Cycles (min) | **25** |
 | Estimated Cycles (max) | **37** |
-| Total Instructions | 20 |
-| Total Code Size | 54 bytes |
-| FPU Operations | 0 |
+| Instructions on Worst Path | 18 |
+| Code Size of Functions on Path | 54 bytes |
+| FPU Operations on Worst Path | 0 |
 | Path Stages | 3 |
 
 ## CPU Utilization Budget
 
 | Loop Rate | Available Cycles | Min Usage | Max Usage | Status |
 |-----------|-----------------|-----------|-----------|--------|
-| 20 kHz | 5000 | 23 (0.5%) | 37 (0.7%) | 🟢 OK |
+| 20 kHz | 5000 | 25 (0.5%) | 37 (0.7%) | 🟢 OK |
 
 ## Path Breakdown
 
 ```
   Observer     ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░     3–6    cycles ( 16.2%)
                │
-  PID Loop     ███████████████████░░░░░░░░░░░░░░░░░░░░░    15–18   cycles ( 48.6%)
+  PID Loop     █████████████████░░░░░░░░░░░░░░░░░░░░░░░    13–16   cycles ( 43.2%)
                │
-  Mode B Wrap  ██████████████░░░░░░░░░░░░░░░░░░░░░░░░░░     5–13   cycles ( 35.1%)
+  Mode B Wrap  ████████████████░░░░░░░░░░░░░░░░░░░░░░░░     9–15   cycles ( 40.5%)
 ```
 
 | Stage | Min Cycles | Max Cycles | Instructions | Code Size | FPU Ops | Functions |
 |-------|-----------|-----------|-------------|-----------|---------|-----------|
 | Observer | 3 | 6 | 3 | 10 B | 0 | 1 |
-| PID Loop | 15 | 18 | 12 | 28 B | 0 | 1 |
-| Mode B Wrap | 5 | 13 | 5 | 16 B | 0 | 1 |
-| **TOTAL** | **23** | **37** | **20** | **54 B** | **0** | |
+| PID Loop | 13 | 16 | 10 | 28 B | 0 | 1 |
+| Mode B Wrap | 9 | 15 | 5 | 16 B | 0 | 1 |
+| **TOTAL** | **25** | **37** | **18** | **54 B** | **0** | |
+
+## Per-Function Detail — Observer
+
+| Function | Calls | Max Cycles | Instructions on Path | FPU |
+|----------|-------|-----------|----------------------|-----|
+| `observer` | 1x | 6 | 3 | 0 |
+
+## Per-Function Detail — PID Loop
+
+| Function | Calls | Max Cycles | Instructions on Path | FPU |
+|----------|-------|-----------|----------------------|-----|
+| `pid_loop` | 1x | 16 | 10 | 0 |
+
+## Per-Function Detail — Mode B Wrap
+
+| Function | Calls | Max Cycles | Instructions on Path | FPU |
+|----------|-------|-----------|----------------------|-----|
+| `mode_b_step` | 1x | 15 | 5 | 0 |
 
 ## Instruction Mix
 
 ```
   FPU          ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    0 (  0.0%)
-  Load/Store   ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    5 ( 25.0%)
-  Branch       ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    4 ( 20.0%)
-  ALU          ███████████████████████████░░░░░░░░░░░░░░░░░░░░░░░   11 ( 55.0%)
+  Load/Store   █████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    5 ( 26.3%)
+  Branch       ██████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    4 ( 21.1%)
+  ALU          ██████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░   10 ( 52.6%)
   Mul/Div      ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░    0 (  0.0%)
 ```
 
 ## Optimization Quality Indicators
 
 - ❌ **Low FPU utilization** (0%) — excessive overhead
-- ✅ **Low load/store ratio** (25%) — efficient register usage
+- ⚠️ **Moderate load/store ratio** (26%)
 - ⚠️ **No FMA instructions** — consider `-ffast-math` or VFMA intrinsics

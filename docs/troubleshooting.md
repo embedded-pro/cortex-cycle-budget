@@ -45,6 +45,25 @@ Strict mode is on (the default). Either:
 - Confirm the comment isn't being created by a different bot using the same
   marker. The marker is exactly `<!-- cortex-cycle-budget-comment -->`.
 
+## The estimate changed after upgrading
+
+A stage is charged the worst path through its functions, with the functions
+that path calls. Earlier releases charged every instruction of the functions a
+stage named. Three things move the number:
+
+- Branches that are not on the worst path are no longer charged: lower.
+- Directly called functions are charged even if no stage names them: higher.
+- Fused multiply-accumulate costs 3 cycles and register lists `1 + N`: higher.
+
+Read *Analysis Notes* in the full report, mark alternatives with
+`"combine": "max"`, and see [path-analysis.md](path-analysis.md).
+
+## A stage is charged 0 cycles
+
+The functions it names are charged elsewhere, or not at all. The stage's notes
+say which: another stage named them first, or they are alternatives that a
+`"combine": "max"` stage did not pick.
+
 ## M7 cycle counts seem too high
 
 The static analyzer assumes **worst-case latency** for FPU operations and

@@ -23,9 +23,16 @@
              │                  │  • resolve_timing_table  │
              ▼                  │  • normalize_mnemonic    │
 ┌─────────────────────┐         │  • classify_instruction  │
-│    analysis.py      │ ◀────── │  • get_timing            │
-│  • walk_call_graph  │         └──────────────────────────┘
+│     paths.py        │ ◀────── │  • instruction_timing    │
+│  • analyze_paths    │         └──────────────────────────┘
+│  • classify_flow    │
+└─────────────────────┘
+             │
+             ▼
+┌─────────────────────┐
+│    analysis.py      │
 │  • analyze_stages   │
+│  • path_breakdown   │
 └─────────────────────┘
              │
              ▼
@@ -48,7 +55,8 @@
 | `tooling.py`        | Thin wrappers around `arm-none-eabi-objdump` / `size` and stderr logging.     |
 | `parser.py`         | Convert raw objdump text → typed `Function` list with cycle estimates.        |
 | `config.py`         | Pure JSON-config validation; raises `ConfigError` with aggregated messages.   |
-| `analysis.py`       | Walk the call graph; reduce matched functions into `PathStage` totals.        |
+| `paths.py`          | Control-flow graph per function; worst and best path, direct callees included. |
+| `analysis.py`       | Pick each stage's roots and charge their paths to the stages that name them.  |
 | `reports.py`        | Pure rendering: stages + config → Markdown / JSON / annotated disasm.         |
 | `cli_single.py`     | Single-mode CLI orchestration.                                                |
 | `cli_multi.py`      | Multi-mode CLI orchestration; combined PR comment / step summary.            |
@@ -61,8 +69,9 @@
    is classified and assigned `(min, max)` cycles via `get_timing()` using
    the variant-specific table from `resolve_timing_table(cortex)`.
 4. **analysis** processes each stage:
-   - **pattern stages** match functions by regex, optionally walking the call
-     graph from an `entry` regex.
+   - **pattern stages** match functions by regex; **paths** costs the worst
+     path of each, and every function on it is charged to the stage that
+     names it (see [path-analysis.md](path-analysis.md)).
    - **architectural stages** (`exception_entry`/`exception_exit`) charge the
      per-variant overhead from `EXCEPTION_OVERHEAD[cortex]`.
 5. **reports** render the final outputs from the `PathStage` list.

@@ -93,6 +93,53 @@ class TestValidateConfig:
                 "clock_mhz": 0,
             })
 
+    def test_combine_accepts_sum_and_max(self) -> None:
+        for combine in ("sum", "max"):
+            validate_config({
+                "path_stages": [{"label": "s", "patterns": ["foo"], "combine": combine}],
+            })
+
+    def test_unknown_combine(self) -> None:
+        with pytest.raises(ConfigError, match="unknown combine"):
+            validate_config({
+                "path_stages": [{"label": "s", "patterns": ["foo"], "combine": "average"}],
+            })
+
+    def test_loop_bounds_ok(self) -> None:
+        validate_config({
+            "path_stages": [{"label": "s", "patterns": ["foo"]}],
+            "loop_bounds": {"^drain$": 6},
+        })
+
+    @pytest.mark.parametrize("bounds", [{"^drain$": 0}, {"^drain$": "6"}, {"^drain$": True}, ["x"]])
+    def test_invalid_loop_bounds(self, bounds: object) -> None:
+        with pytest.raises(ConfigError, match="loop_bounds"):
+            validate_config({
+                "path_stages": [{"label": "s", "patterns": ["foo"]}],
+                "loop_bounds": bounds,
+            })
+
+    def test_loop_bounds_key_must_be_a_regex(self) -> None:
+        with pytest.raises(ConfigError, match="loop_bounds.*not valid regex"):
+            validate_config({
+                "path_stages": [{"label": "s", "patterns": ["foo"]}],
+                "loop_bounds": {"(": 2},
+            })
+
+    def test_cold_calls_ok(self) -> None:
+        validate_config({
+            "path_stages": [{"label": "s", "patterns": ["foo"]}],
+            "cold_calls": ["^trip$"],
+        })
+
+    @pytest.mark.parametrize("cold", ["^trip$", [1], ["("]])
+    def test_invalid_cold_calls(self, cold: object) -> None:
+        with pytest.raises(ConfigError, match="cold_calls"):
+            validate_config({
+                "path_stages": [{"label": "s", "patterns": ["foo"]}],
+                "cold_calls": cold,
+            })
+
     def test_multiple_errors_reported(self) -> None:
         with pytest.raises(ConfigError) as exc:
             validate_config({

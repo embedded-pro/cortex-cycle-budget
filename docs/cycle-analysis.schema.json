@@ -42,6 +42,19 @@
             "items": {
                 "$ref": "#/definitions/stage"
             }
+        },
+        "loop_bounds": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        "cold_calls": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         }
     },
     "definitions": {
@@ -72,6 +85,12 @@
                         },
                         "required": {
                             "type": "boolean"
+                        },
+                        "combine": {
+                            "enum": [
+                                "sum",
+                                "max"
+                            ]
                         }
                     }
                 },
