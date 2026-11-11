@@ -60,7 +60,7 @@ from cortex_cycle_budget.timing_model import (
 )
 from cortex_cycle_budget.tooling import log, run_objdump, run_size
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 __all__ = [
     "BASE_TIMING",
