@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1](https://github.com/embedded-pro/cortex-cycle-budget/compare/v1.0.0...v1.0.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* multiply a loop bound through nested loops ([#67](https://github.com/embedded-pro/cortex-cycle-budget/issues/67)) ([68848ad](https://github.com/embedded-pro/cortex-cycle-budget/commit/68848adca7f13cdcec4691645df231646647d29c))
+
 ## [1.0.0](https://github.com/embedded-pro/cortex-cycle-budget/compare/v0.2.0...v1.0.0) (2026-11-10)
 
 
