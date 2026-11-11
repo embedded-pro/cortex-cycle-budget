@@ -5,6 +5,13 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/embedded-pro/cortex-cycle-budget/compare/v1.0.1...v1.1.0) (2026-11-11)
+
+
+### Features
+
+* bound each loop of a function on its own ([#69](https://github.com/embedded-pro/cortex-cycle-budget/issues/69)) ([94e77ff](https://github.com/embedded-pro/cortex-cycle-budget/commit/94e77ff461a0e7a57efe809b398c26fcd35c5258))
+
 ## [1.0.1](https://github.com/embedded-pro/cortex-cycle-budget/compare/v1.0.0...v1.0.1) (2026-11-11)
 
 
