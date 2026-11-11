@@ -72,6 +72,19 @@ NESTED = """
      f12:	4770      	bx	lr
 """
 
+TWO_LOOPS = """
+00001000 <two_loops>:
+    1000:	2300      	movs	r3, #0
+    1002:	3301      	adds	r3, #1
+    1004:	2b09      	cmp	r3, #9
+    1006:	d1fc      	bne.n	1002 <two_loops+0x2>
+    1008:	2200      	movs	r2, #0
+    100a:	3201      	adds	r2, #1
+    100c:	2a03      	cmp	r2, #3
+    100e:	d1fc      	bne.n	100a <two_loops+0xa>
+    1010:	4770      	bx	lr
+"""
+
 CALLER = """
 00000500 <caller>:
      500:	b510      	push	{r4, lr}
@@ -246,6 +259,42 @@ class TestLoops:
         inner = 1 + 1 + 1 + 4
         outer_only = 1 + 1 + 1 + 4
         assert path.max_cycles == 1 + 9 * inner + 3 * outer_only + 4
+
+    def test_bounds_per_loop_are_taken_in_address_order(self) -> None:
+        path = _path(_functions(TWO_LOOPS), "two_loops", PathOptions(loop_bounds={"^two_loops$": [9, 3]}))
+        body = 1 + 1 + 4
+        assert path.max_cycles == 1 + 9 * body + 1 + 3 * body + 4
+        assert path.loop_bounds == (9, 3)
+        assert path.loop_bound is None
+        assert path.unbounded_loops == 0
+
+    def test_bounds_per_loop_multiply_through_their_own_nest(self) -> None:
+        path = _path(_functions(NESTED), "nested", PathOptions(loop_bounds={"^nested$": [2, 5]}))
+        inner = 1 + 1 + 1 + 4
+        outer_only = 1 + 1 + 1 + 4
+        assert path.max_cycles == 1 + 2 * 5 * inner + 2 * outer_only + 4
+
+    def test_wrong_number_of_bounds_charges_every_loop_the_largest(self) -> None:
+        listed = _path(_functions(NESTED), "nested", PathOptions(loop_bounds={"^nested$": [2, 4, 3]}))
+        largest = _path(_functions(NESTED), "nested", PathOptions(loop_bounds={"^nested$": 4}))
+        assert listed.max_cycles == largest.max_cycles
+        assert listed.mismatched_bounds == 3
+        assert listed.loop_bounds == ()
+        assert largest.mismatched_bounds == 0
+
+    def test_loops_are_reported_in_address_order(self) -> None:
+        path = _path(_functions(NESTED), "nested", PathOptions(loop_bounds={"^nested$": [2, 5]}))
+        assert [(loop.address, loop.depth, loop.instructions, loop.iterations) for loop in path.loops] == [
+            (0xF02, 1, 8, 2),
+            (0xF04, 2, 4, 5),
+        ]
+
+    def test_loops_without_a_bound_are_reported_with_one_iteration(self) -> None:
+        path = _path(_functions(TWO_LOOPS), "two_loops")
+        assert [(loop.address, loop.depth, loop.iterations) for loop in path.loops] == [
+            (0x1002, 1, 1),
+            (0x100A, 1, 1),
+        ]
 
     def test_nested_loops_without_a_bound_are_charged_once(self) -> None:
         path = _path(_functions(NESTED), "nested")

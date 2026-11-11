@@ -111,7 +111,16 @@ class TestValidateConfig:
             "loop_bounds": {"^drain$": 6},
         })
 
-    @pytest.mark.parametrize("bounds", [{"^drain$": 0}, {"^drain$": "6"}, {"^drain$": True}, ["x"]])
+    def test_loop_bounds_per_loop_ok(self) -> None:
+        validate_config({
+            "path_stages": [{"label": "s", "patterns": ["foo"]}],
+            "loop_bounds": {"^update$": [3, 3, 9]},
+        })
+
+    @pytest.mark.parametrize("bounds", [
+        {"^drain$": 0}, {"^drain$": "6"}, {"^drain$": True}, ["x"],
+        {"^drain$": []}, {"^drain$": [3, 0]}, {"^drain$": [3, "9"]}, {"^drain$": [True]},
+    ])
     def test_invalid_loop_bounds(self, bounds: object) -> None:
         with pytest.raises(ConfigError, match="loop_bounds"):
             validate_config({

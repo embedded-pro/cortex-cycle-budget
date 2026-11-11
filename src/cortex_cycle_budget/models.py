@@ -40,6 +40,16 @@ class Function:
 
 
 @dataclass(frozen=True)
+class Loop:
+    """One loop of a function, as the path analysis sees it."""
+
+    address: int  # first instruction of the loop
+    depth: int  # 1 for an outermost loop
+    instructions: int  # instructions in the loop, nested loops included
+    iterations: int  # iterations charged each time the loop is entered
+
+
+@dataclass(frozen=True)
 class FunctionPath:
     """Best and worst path through one function, directly called functions included."""
 
@@ -54,7 +64,10 @@ class FunctionPath:
     min_callees: tuple[tuple[int, int], ...] = ()  # (start address, calls) on the best path
     indirect_calls: int = 0  # calls through a register on the worst path, not followed
     unbounded_loops: int = 0  # loops on the worst path counted for one iteration
-    loop_bound: int | None = None  # iterations charged to the loops on the worst path
+    loop_bound: int | None = None  # iterations charged to every loop on the worst path
+    loop_bounds: tuple[int, ...] = ()  # iterations charged to each loop, when configured per loop
+    mismatched_bounds: int = 0  # bounds listed per loop that did not match the number of loops
+    loops: tuple[Loop, ...] = ()  # every loop of the function, in address order
     whole_body: bool = False  # control flow not resolved: every instruction counted
 
 
@@ -70,6 +83,7 @@ class FunctionShare:
     code_size: int
     fpu_ops: int
     addresses: frozenset[int] = frozenset()
+    loops: tuple[Loop, ...] = ()
 
 
 @dataclass

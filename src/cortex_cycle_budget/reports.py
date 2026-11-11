@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from cortex_cycle_budget.models import Function, PathStage
+from cortex_cycle_budget.models import Function, Loop, PathStage
 from cortex_cycle_budget.timing_model import classify_instruction, is_data
 
 
@@ -118,6 +118,24 @@ def generate_report(
                 f"| `{short}` | {share.calls}x | {share.max_cycles} "
                 f"| {share.instructions} | {share.fpu_ops} |"
             )
+        lines.append("")
+
+    # ── Loops ─────────────────────────────────────────────────────────────
+    for stage in stages:
+        looping = [share for share in stage.breakdown if share.loops]
+        if not looping:
+            continue
+        lines.append(f"## Loops — {stage.label}")
+        lines.append("")
+        lines.append("| Function | Loop | Address | Depth | Instructions | Iterations |")
+        lines.append("|----------|------|---------|-------|--------------|------------|")
+        for share in looping:
+            short = share.function[:100] + "..." if len(share.function) > 100 else share.function
+            for number, loop in enumerate(share.loops, start=1):
+                lines.append(
+                    f"| `{short}` | {number} | 0x{loop.address:08x} | {loop.depth} "
+                    f"| {loop.instructions} | {loop.iterations} |"
+                )
         lines.append("")
 
     # ── Analysis Notes ────────────────────────────────────────────────────
@@ -333,6 +351,15 @@ def generate_annotated_disasm(
     return "\n".join(lines)
 
 
+def _loop_metrics(loop: Loop) -> dict[str, Any]:
+    return {
+        "address": f"0x{loop.address:08x}",
+        "depth": loop.depth,
+        "instructions": loop.instructions,
+        "iterations": loop.iterations,
+    }
+
+
 def generate_json_metrics(
     config: dict[str, Any],
     stages: list[PathStage],
@@ -390,6 +417,7 @@ def generate_json_metrics(
                         "calls": share.calls,
                         "max_cycles": share.max_cycles,
                         "instructions": share.instructions,
+                        **({"loops": [_loop_metrics(loop) for loop in share.loops]} if share.loops else {}),
                     }
                     for share in s.breakdown
                 ],

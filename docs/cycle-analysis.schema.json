@@ -46,8 +46,20 @@
         "loop_bounds": {
             "type": "object",
             "additionalProperties": {
-                "type": "integer",
-                "minimum": 1
+                "oneOf": [
+                    {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ]
             }
         },
         "cold_calls": {

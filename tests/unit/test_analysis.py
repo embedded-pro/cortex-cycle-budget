@@ -102,6 +102,19 @@ class TestPatternStage:
         assert bounded.max_cycles > once.max_cycles
         assert any("configured bound" in note and "`looper` (4)" in note for note in bounded.notes)
 
+    def test_bounds_per_loop_are_noted(self) -> None:
+        (stage,) = _analyze([{"label": "S", "patterns": ["^looper$"]}], loop_bounds={"^looper$": [4]})
+        assert any("own configured bound" in note and "`looper` (4)" in note for note in stage.notes)
+
+    def test_wrong_number_of_bounds_is_noted(self) -> None:
+        (stage,) = _analyze([{"label": "S", "patterns": ["^looper$"]}], loop_bounds={"^looper$": [4, 2]})
+        assert any("the largest" in note and "`looper` (2 bounds, 1 loops)" in note for note in stage.notes)
+
+    def test_breakdown_carries_the_loops_of_a_function(self) -> None:
+        (stage,) = _analyze([{"label": "S", "patterns": ["^looper$"]}], loop_bounds={"^looper$": 4})
+        (share,) = stage.breakdown
+        assert [(loop.address, loop.depth, loop.iterations) for loop in share.loops] == [(0x172, 1, 4)]
+
 
 class TestStageAttribution:
     def test_callee_named_by_another_stage_is_charged_there(self) -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -129,9 +129,9 @@ def _distribute(
 
 def _path_notes(charged: Sequence[FunctionPath]) -> list[str]:
     """What the analysis could not see on the worst paths of *charged*, one note per kind."""
-    def names(paths: Sequence[FunctionPath], count: str | None = None) -> str:
+    def names(paths: Sequence[FunctionPath], detail: Callable[[FunctionPath], object] | None = None) -> str:
         return ", ".join(
-            f"`{_short(p.function)}`" + (f" ({getattr(p, count)})" if count else "") for p in paths
+            f"`{_short(p.function)}`" + (f" ({detail(p)})" if detail else "") for p in paths
         )
 
     notes: list[str] = []
@@ -139,17 +139,30 @@ def _path_notes(charged: Sequence[FunctionPath]) -> list[str]:
     if indirect:
         notes.append(
             "calls through a register are not followed, name their targets in a stage: "
-            + names(indirect, "indirect_calls")
+            + names(indirect, lambda p: p.indirect_calls)
         )
     unbounded = [p for p in charged if p.unbounded_loops]
     if unbounded:
         notes.append(
             "loops are charged for one iteration, set `loop_bounds` to charge more: "
-            + names(unbounded, "unbounded_loops")
+            + names(unbounded, lambda p: p.unbounded_loops)
         )
-    bounded = [p for p in charged if p.loop_bound is not None]
+    bounded = [p for p in charged if p.loop_bound is not None and not p.mismatched_bounds]
     if bounded:
-        notes.append("loops are charged their configured bound: " + names(bounded, "loop_bound"))
+        notes.append("loops are charged their configured bound: " + names(bounded, lambda p: p.loop_bound))
+    per_loop = [p for p in charged if p.loop_bounds]
+    if per_loop:
+        notes.append(
+            "loops are charged their own configured bound, in address order: "
+            + names(per_loop, lambda p: ", ".join(str(n) for n in p.loop_bounds))
+        )
+    mismatched = [p for p in charged if p.mismatched_bounds]
+    if mismatched:
+        notes.append(
+            "`loop_bounds` lists a different number of bounds than the function has loops, "
+            "every loop is charged the largest: "
+            + names(mismatched, lambda p: f"{p.mismatched_bounds} bounds, {len(p.loops)} loops")
+        )
     whole = [p for p in charged if p.whole_body]
     if whole:
         notes.append("control flow not resolved, every instruction is charged: " + names(whole))
@@ -183,6 +196,7 @@ def _fill(stage: PathStage, charge: _Charge, paths: dict[int, FunctionPath],
             code_size=fn.code_size,
             fpu_ops=sum(1 for i in executed if classify_instruction(i.mnemonic) == "fpu") * times,
             addresses=on_path,
+            loops=path.loops,
         ))
         stage.indirect_calls += path.indirect_calls * times
     stage.notes.extend(_path_notes([paths[address] for address in charge.calls]))

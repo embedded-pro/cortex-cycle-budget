@@ -21,7 +21,7 @@ A machine-readable JSON Schema lives at
 | `build_config`   | string              |    ⬜    | Overridden by `--build-config`.                                             |
 | `clock_mhz`      | integer             |    ⬜    | Overridden by `--clock-mhz`.                                                |
 | `cortex`         | enum                |    ⬜    | One of `m0`, `m4`, `m7`, `m33`. Overridden by `--cortex`.                   |
-| `loop_bounds`    | object              |    ⬜    | Function-name regex → iterations of every loop in that function; nested loops multiply. |
+| `loop_bounds`    | object              |    ⬜    | Function-name regex → iterations of every loop in that function, or a list with one bound per loop in address order; nested loops multiply. |
 | `cold_calls`     | array<string>       |    ⬜    | Function-name regexes. A path that calls one is left out of the worst path. |
 
 ---
@@ -108,7 +108,7 @@ their targets.
 
 ```json
 {
-  "loop_bounds": {"^adc_drain$": 6},
+  "loop_bounds": {"^adc_drain$": 6, "^matrix_update$": [3, 3, 9]},
   "cold_calls": ["^trip_over_current$"],
   "path_stages": [
     {"label": "ADC",  "patterns": ["^adc_isr$"]},
@@ -142,7 +142,7 @@ The CLI calls `validate_config()` before analysis. Errors include:
 - Invalid `type` value.
 - Unparseable `patterns` or `entry` regex.
 - `combine` other than `sum` or `max`.
-- `loop_bounds` that is not an object of regex → positive integer.
+- `loop_bounds` that is not an object of regex → positive integer, or → non-empty list of positive integers.
 - `cold_calls` that is not a list of regexes.
 - Non-positive `loop_rates_khz` entries.
 - `cortex` not in `{m0, m4, m7, m33}`.
