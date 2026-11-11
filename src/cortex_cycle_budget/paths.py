@@ -3,7 +3,8 @@
 Each function becomes a control-flow graph with one node per instruction. The
 cost of a function is the longest path from its first instruction to a return,
 with the cost of every directly called function added at its call site. A loop
-body is counted once unless the configuration gives the function a loop bound.
+body is counted once unless the configuration gives the function a loop bound,
+which every loop in it then runs: nested loops multiply.
 """
 
 from __future__ import annotations
@@ -450,11 +451,15 @@ def _function_path(
         return _whole_body(fn, graph, callee_cost)
 
     opened, bodies = _acyclic(graph.edges, first, callee_cost)
-    looping = set().union(*bodies.values()) if bodies else set()
+    depth: dict[int, int] = {}  # node → number of loops it is nested in
+    for body in bodies.values():
+        for member in body:
+            depth[member] = depth.get(member, 0) + 1
+    looping = set(depth)
     bound = next((n for pattern, n in bounds if pattern.search(fn.demangled)), None)
 
     def scale(node: int) -> int:
-        return bound if bound is not None and node in looping else 1
+        return 1 if bound is None else int(bound ** depth.get(node, 0))
 
     forward = [[e for e in out if e.after == 0] for out in opened]
     worst = _extreme(first, opened, instructions, scale, callee_cost, worst=True)

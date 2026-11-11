@@ -77,8 +77,10 @@ A loop the analysis cannot bound is charged for one iteration and listed under
 "loop_bounds": { "^drain_fifo$": 6 }
 ```
 
-Every loop in a function matching the regex is charged that many iterations.
-A bound larger than the real one keeps the estimate an upper bound.
+Every loop in a function matching the regex is charged that many iterations,
+so nested loops multiply: with a bound of 3, the body of a loop inside a loop
+is charged 9 times. A bound larger than the real one keeps the estimate an
+upper bound.
 
 ---
 
@@ -114,7 +116,8 @@ does not include or had to assume.
 
 ## Limits
 
-- Loop bounds are per function, not per loop.
+- A loop bound applies to every loop of its function; loops of different
+  lengths in one function all take the largest.
 - Recursive calls are charged once.
 - Indirect calls and jumps are never resolved.
 - No cache, flash wait-state, or bus model: see
