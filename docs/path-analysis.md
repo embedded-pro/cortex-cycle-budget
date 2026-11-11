@@ -82,6 +82,31 @@ so nested loops multiply: with a bound of 3, the body of a loop inside a loop
 is charged 9 times. A bound larger than the real one keeps the estimate an
 upper bound.
 
+### One bound per loop
+
+A function whose loops run different numbers of times takes a list, one bound
+per loop:
+
+```json
+"loop_bounds": { "^matrix_update$": [3, 3, 9] }
+```
+
+The bounds follow the loops in address order, by the first instruction of each
+loop. A loop inside another still multiplies: its body is charged its own
+bound times the bound of every loop around it. Here the first loop runs 3
+times, the second, nested in it, 3 times per pass and so 9 times in all, and
+the third 9 times.
+
+The *Loops* table of the full report lists every loop of each charged
+function in that order, with its address, its nesting depth, its size and the
+iterations it was charged. Read the order and the nesting from there, and
+find each loop in the annotated disassembly by its address.
+
+The list is tied to the code the compiler generated. If it names a different
+number of bounds than the function has loops, every loop is charged the
+largest bound in the list and the report says so. Correct the list after a
+change to the function, the compiler or its options.
+
 ---
 
 ## Paths that are not part of an iteration
@@ -107,6 +132,7 @@ does not include or had to assume.
 | --------------------------------------------------------- | ---------------------------------------------------------------- |
 | calls through a register are not followed                 | Name the function it reaches in a stage. Callbacks, virtual calls. |
 | loops are charged for one iteration                       | Add the function to `loop_bounds`.                               |
+| `loop_bounds` lists a different number of bounds …        | Rewrite the list from the *Loops* table of the report.           |
 | alternative … is not charged                              | Expected with `"combine": "max"`.                                |
 | … is not on the worst path of …, which calls it           | Its caller's worst path does not reach it. Nothing to do.        |
 | … is already charged to stage …                           | Two stages match it. Remove it from one.                         |

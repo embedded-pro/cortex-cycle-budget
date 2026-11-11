@@ -3,8 +3,9 @@
 Each function becomes a control-flow graph with one node per instruction. The
 cost of a function is the longest path from its first instruction to a return,
 with the cost of every directly called function added at its call site. A loop
-body is counted once unless the configuration gives the function a loop bound,
-which every loop in it then runs: nested loops multiply.
+body is counted once unless the configuration gives the function a loop bound:
+one for every loop in it, or one per loop in address order. Nested loops
+multiply.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import re
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 
-from cortex_cycle_budget.models import Function, FunctionPath, Instruction
+from cortex_cycle_budget.models import Function, FunctionPath, Instruction, Loop
 from cortex_cycle_budget.timing_model import COND_SUFFIXES, is_data
 
 # A conditional branch that is not taken, or an instruction an IT block skips.
@@ -47,7 +48,7 @@ _TABLE_SCAN = 6
 class PathOptions:
     """Analysis settings taken from the configuration."""
 
-    loop_bounds: Mapping[str, int] = field(default_factory=dict)
+    loop_bounds: Mapping[str, int | Sequence[int]] = field(default_factory=dict)
     cold_calls: Sequence[str] = ()
 
 
@@ -437,10 +438,22 @@ def analyze_paths(
     return results
 
 
+def _iterations(headers: Sequence[int], configured: int | Sequence[int] | None) -> tuple[dict[int, int], int]:
+    """Iterations of each loop, by header, and how many listed bounds did not fit the loops."""
+    if configured is None:
+        return dict.fromkeys(headers, 1), 0
+    if isinstance(configured, int):
+        return dict.fromkeys(headers, configured), 0
+    listed = tuple(configured)
+    if len(listed) == len(headers):
+        return dict(zip(headers, listed, strict=True)), 0
+    return dict.fromkeys(headers, max(listed, default=1)), len(listed)
+
+
 def _function_path(
     fn: Function,
     graph: _Graph,
-    bounds: Sequence[tuple[re.Pattern[str], int]],
+    bounds: Sequence[tuple[re.Pattern[str], int | Sequence[int]]],
     callee_cost: _CalleeCost,
 ) -> FunctionPath:
     instructions = fn.instructions
@@ -451,15 +464,21 @@ def _function_path(
         return _whole_body(fn, graph, callee_cost)
 
     opened, bodies = _acyclic(graph.edges, first, callee_cost)
+    headers = sorted(bodies)
+    configured = next((n for pattern, n in bounds if pattern.search(fn.demangled)), None)
+    iterations, mismatched = _iterations(headers, configured)
+    per_loop = configured is not None and not isinstance(configured, int) and not mismatched
     depth: dict[int, int] = {}  # node → number of loops it is nested in
-    for body in bodies.values():
+    times: dict[int, int] = {}  # node → iterations of every loop around it, multiplied
+    for header, body in bodies.items():
         for member in body:
             depth[member] = depth.get(member, 0) + 1
+            times[member] = times.get(member, 1) * iterations[header]
     looping = set(depth)
-    bound = next((n for pattern, n in bounds if pattern.search(fn.demangled)), None)
+    bound = None if configured is None or per_loop else max(iterations.values(), default=None)
 
     def scale(node: int) -> int:
-        return 1 if bound is None else int(bound ** depth.get(node, 0))
+        return times.get(node, 1)
 
     forward = [[e for e in out if e.after == 0] for out in opened]
     worst = _extreme(first, opened, instructions, scale, callee_cost, worst=True)
@@ -474,16 +493,16 @@ def _function_path(
     step: int | None = first
     while step is not None and step != _EXIT:
         _, taken, callee = worst[step]
-        times = scale(step)
+        repeats = scale(step)
         addresses.append(instructions[step].address)
         if taken is None:
-            own_max += instructions[step].max_cycles * times
+            own_max += instructions[step].max_cycles * repeats
         else:
-            own_max += taken.max_cycles * times + taken.after
+            own_max += taken.max_cycles * repeats + taken.after
         if step in graph.indirect:
-            indirect += times
+            indirect += repeats
         if callee is not None:
-            callees[callee] = callees.get(callee, 0) + times
+            callees[callee] = callees.get(callee, 0) + repeats
         in_loop = in_loop or step in looping
         step = taken.dest if taken is not None else None
 
@@ -508,8 +527,19 @@ def _function_path(
         callees=tuple(sorted(callees.items())),
         min_callees=tuple(sorted(min_callees.items())),
         indirect_calls=indirect,
-        unbounded_loops=len(bodies) if in_loop and bound is None else 0,
+        unbounded_loops=len(bodies) if in_loop and configured is None else 0,
         loop_bound=bound if in_loop else None,
+        loop_bounds=tuple(iterations[h] for h in headers) if per_loop and in_loop else (),
+        mismatched_bounds=mismatched,
+        loops=tuple(
+            Loop(
+                address=instructions[h].address,
+                depth=depth[h],
+                instructions=len(bodies[h]),
+                iterations=iterations[h],
+            )
+            for h in headers
+        ),
     )
 
 

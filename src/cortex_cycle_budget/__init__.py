@@ -33,6 +33,7 @@ from cortex_cycle_budget.models import (
     FunctionPath,
     FunctionShare,
     Instruction,
+    Loop,
     PathStage,
     StageMatchError,
 )
@@ -72,6 +73,7 @@ __all__ = [
     "FunctionPath",
     "FunctionShare",
     "Instruction",
+    "Loop",
     "PathOptions",
     "PathStage",
     "StageMatchError",

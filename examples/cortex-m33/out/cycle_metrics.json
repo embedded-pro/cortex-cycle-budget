@@ -53,13 +53,29 @@
           "function": "crc32",
           "calls": 1,
           "max_cycles": 34,
-          "instructions": 11
+          "instructions": 11,
+          "loops": [
+            {
+              "address": "0x00000026",
+              "depth": 1,
+              "instructions": 5,
+              "iterations": 1
+            }
+          ]
         },
         {
           "function": "crc32_byte",
           "calls": 1,
           "max_cycles": 17,
-          "instructions": 10
+          "instructions": 10,
+          "loops": [
+            {
+              "address": "0x00000006",
+              "depth": 1,
+              "instructions": 6,
+              "iterations": 1
+            }
+          ]
         },
         {
           "function": "isr_handler",

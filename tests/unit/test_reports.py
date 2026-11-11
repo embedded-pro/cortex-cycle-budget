@@ -129,6 +129,15 @@ ANALYZED_DISASM = """
      114:	20000000 	.word	0x20000000
 """
 
+LOOPING_DISASM = """
+00000300 <drain>:
+     300:	2300      	movs	r3, #0
+     302:	3301      	adds	r3, #1
+     304:	2b06      	cmp	r3, #6
+     306:	d1fc      	bne.n	302 <drain+0x2>
+     308:	4770      	bx	lr
+"""
+
 
 @pytest.fixture
 def analyzed(config: dict) -> tuple[dict, list, list[PathStage]]:
@@ -164,6 +173,27 @@ class TestPathReporting:
         off_path = {line.split()[0] for line in lines if line.startswith("  0x")}
         assert on_path == {f"0x{address:08x}" for address in range(0x100, 0x112, 2)}
         assert off_path == {"0x00000112", "0x00000114"}
+
+    def test_report_lists_the_loops_of_a_charged_function(self, config: dict) -> None:
+        functions = parse_disassembly(LOOPING_DISASM)
+        cfg = {**config, "path_stages": [{"label": "Drain", "patterns": ["^drain$"]}], "loop_bounds": {"^drain$": [6]}}
+        stages = analyze_stages(cfg, functions, {f.demangled: f for f in functions})
+        out = generate_report(cfg, stages, functions, {f.demangled: f for f in functions})
+        assert "## Loops — Drain" in out
+        assert "| `drain` | 1 | 0x00000302 | 1 | 3 | 6 |" in out
+
+    def test_report_without_loops_has_no_loops_section(self, analyzed: tuple) -> None:
+        cfg, functions, stages = analyzed
+        assert "## Loops" not in generate_report(cfg, stages, functions, {f.demangled: f for f in functions})
+
+    def test_json_carries_the_loops_of_a_function(self, config: dict) -> None:
+        functions = parse_disassembly(LOOPING_DISASM)
+        cfg = {**config, "path_stages": [{"label": "Drain", "patterns": ["^drain$"]}], "loop_bounds": {"^drain$": [6]}}
+        stages = analyze_stages(cfg, functions, {f.demangled: f for f in functions})
+        (stage,) = generate_json_metrics(cfg, stages)["stages"]
+        assert stage["breakdown"][0]["loops"] == [
+            {"address": "0x00000302", "depth": 1, "instructions": 3, "iterations": 6},
+        ]
 
     def test_json_carries_breakdown_and_notes(self, analyzed: tuple) -> None:
         cfg, _, stages = analyzed

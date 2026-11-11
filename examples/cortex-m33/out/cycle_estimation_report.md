@@ -46,6 +46,13 @@
 | `crc32_byte` | 1x | 17 | 10 | 0 |
 | `isr_handler` | 1x | 4 | 1 | 0 |
 
+## Loops — ISR Body
+
+| Function | Loop | Address | Depth | Instructions | Iterations |
+|----------|------|---------|-------|--------------|------------|
+| `crc32` | 1 | 0x00000026 | 1 | 5 | 1 |
+| `crc32_byte` | 1 | 0x00000006 | 1 | 6 | 1 |
+
 ## Analysis Notes
 
 - **ISR Body**: loops are charged for one iteration, set `loop_bounds` to charge more: `crc32` (1), `crc32_byte` (1)

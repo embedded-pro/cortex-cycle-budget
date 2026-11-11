@@ -48,9 +48,11 @@ def validate_config(config: dict[str, Any]) -> None:
     else:
         for pattern, iterations in bounds.items():
             _validate_regex(pattern, f"'loop_bounds' key '{pattern}'", errors)
-            if not isinstance(iterations, int) or isinstance(iterations, bool) or iterations < 1:
+            per_loop = iterations if isinstance(iterations, list) else [iterations]
+            if not per_loop or not all(_positive_integer(n) for n in per_loop):
                 errors.append(
-                    f"'loop_bounds' ['{pattern}'] must be a positive integer, got {iterations!r}"
+                    f"'loop_bounds' ['{pattern}'] must be a positive integer, "
+                    f"or a list of them with one per loop, got {iterations!r}"
                 )
 
     cold = config.get("cold_calls", [])
@@ -70,6 +72,10 @@ def validate_config(config: dict[str, Any]) -> None:
             "Configuration validation failed:\n"
             + "\n".join(f"  • {e}" for e in errors)
         )
+
+
+def _positive_integer(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
 
 
 def _validate_regex(pattern: str, what: str, errors: list[str]) -> None:
